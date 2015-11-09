@@ -87,7 +87,7 @@ public class MusicPlayerService extends Service {
     }
 
     public void loadMusic(String[] music){
-        musicPlayer.loadMusic(music);
+        musicPlayer.loadMusicIntoPlaybackQueue(music);
         Log.d("binder", "void loadMusic()");
     }
 

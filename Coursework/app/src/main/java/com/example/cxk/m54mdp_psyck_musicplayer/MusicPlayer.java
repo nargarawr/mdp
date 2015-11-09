@@ -18,17 +18,17 @@ public class MusicPlayer extends Thread implements Runnable {
 
     private static final String ACTION_PLAY = "ACTION_PLAY";
     public boolean running = true;
-    private ArrayList<String> playbackQueue;
+    private PlaybackQueue playbackQueue;
     private boolean hasDataSource = false;
-    private File musicDirectory;
+
     MediaPlayer mediaPlayer;
     Context context;
 
 
     public MusicPlayer(Context context) {
         this.start();
-        this.musicDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MUSIC);
-        this.playbackQueue = new ArrayList<>();
+
+        this.playbackQueue = new PlaybackQueue();
         this.mediaPlayer = new MediaPlayer();
         this.mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         this.context = context;
@@ -48,13 +48,12 @@ public class MusicPlayer extends Thread implements Runnable {
                 mediaPlayer.start();
             } else {
                 try {
-                    Uri myUri = Uri.parse(this.playbackQueue.get(0));
+                    Uri myUri = Uri.parse(this.playbackQueue.getSong());
 
                     Context c = this.context;
-                    mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener()
-                    {
+                    mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
                         @Override
-                        public void onCompletion(MediaPlayer mp)  {
+                        public void onCompletion(MediaPlayer mp) {
                             // call playbackComplete() of the binder/service and pass back to main thread
                         }
                     });
@@ -63,7 +62,7 @@ public class MusicPlayer extends Thread implements Runnable {
                     this.hasDataSource = true;
                     mediaPlayer.prepare();
                     mediaPlayer.start();
-                    Log.d("MusicPlayer", "playing song: " + this.playbackQueue.get(0));
+                    Log.d("MusicPlayer", "playing song: " + this.playbackQueue.getSong());
                 } catch (IOException e) {
                     Log.e("IOException", "Could not load the file");
                     e.printStackTrace();
@@ -76,17 +75,12 @@ public class MusicPlayer extends Thread implements Runnable {
     }
 
 
-
-    public void loadMusic(String[] music) {
+    public void loadMusicIntoPlaybackQueue(String[] music) {
         Log.d("MusicPlayer", "public void loadMusic()");
-        for (String song : music) {
-            Log.d("MusicPlayer", "Loading.. " + song);
-            String songPath = this.musicDirectory + "/" + song;
-            this.playbackQueue.add(songPath);
-        }
+        this.playbackQueue.addSongsToQueue(music);
     }
 
-    public boolean isPlaying () {
+    public boolean isPlaying() {
         return mediaPlayer.isPlaying();
     }
 }
