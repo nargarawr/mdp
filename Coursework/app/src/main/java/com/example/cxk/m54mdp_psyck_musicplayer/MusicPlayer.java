@@ -33,53 +33,61 @@ public class MusicPlayer extends Thread implements Runnable {
         this.mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         this.context = context;
     }
-
     public void run() {
         Log.d("myapp", "MusicPlayer public void run()");
     }
 
-    public void togglePlayback() {
-        Log.d("myapp", "MusicPlayer public void togglePlayback()");
-        if (mediaPlayer.isPlaying()) {
-            mediaPlayer.pause();
-        } else {
-            if (this.hasDataSource) {
-                mediaPlayer.start();
-            } else {
-                try {
-                    Uri myUri = Uri.parse(this.playbackQueue.getSong());
+    public void pausePlayback() {
+        mediaPlayer.pause();
+    }
 
-                    Context c = this.context;
-                    mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
-                        @Override
-                        public void onCompletion(MediaPlayer mp) {
-                            // call playbackComplete() of the binder/service and pass back to main thread
-                        }
-                    });
+    public void beginPlayback() {
+        Log.d("myapp", "MusicPlayer public void beginPlayback()");
+        if (this.hasDataSource) {
+            Log.d("myapp", "has datasorce");
+            mediaPlayer.start();
+            return;
+        }
 
-                    this.mediaPlayer.setDataSource(this.context, myUri);
-                    this.hasDataSource = true;
-                    mediaPlayer.prepare();
-                    mediaPlayer.start();
-                    Log.d("myapp", "MusicPlayer playing song: " + this.playbackQueue.getSong());
-                } catch (IOException e) {
-                    Log.d("myapp", "MusicPlayer Could not load the file");
-                    e.printStackTrace();
-                } catch (Exception e) {
-                    Log.d("myapp", "MusicPlayer there was one");
-                    e.printStackTrace();
-                }
-            }
+        Log.d("myapp", "is currently playing - " + this.mediaPlayer.isPlaying());
+
+        try {
+            Log.d("myapp", "trying to play");
+            Uri myUri = Uri.parse(this.playbackQueue.getSong().getFilepath());
+            this.mediaPlayer.setDataSource(this.context, myUri);
+            this.hasDataSource = true;
+            this.mediaPlayer.prepare();
+            this.mediaPlayer.start();
+            Log.d("myapp", "MusicPlayer playing song: " + this.playbackQueue.getSong().getFilepath());
+        } catch (IOException e) {
+            Log.d("myapp", "MusicPlayer Could not load the file");
+            e.printStackTrace();
+        } catch (Exception e) {
+            Log.d("myapp", "There was a exception");
+            e.printStackTrace();
         }
     }
 
-
-    public void loadMusicIntoPlaybackQueue(String[] music) {
+    public void loadMusicIntoPlaybackQueue(ArrayList<Song> songs, int start_from) {
         Log.d("myapp", "MusicPlayer public void loadMusic()");
-        this.playbackQueue.addSongsToQueue(music);
+        this.playbackQueue.addSongsToQueue(songs);
+        this.playbackQueue.setIndex(start_from);
     }
 
     public boolean isPlaying() {
         return mediaPlayer.isPlaying();
+    }
+
+    public boolean hasQueue () {
+        return this.playbackQueue.length() > 0;
+    }
+
+    public void stopPlayback() {
+        this.mediaPlayer.stop();
+        this.hasDataSource = false;
+    }
+
+    public void clearQueue() {
+        this.playbackQueue.clear();
     }
 }
