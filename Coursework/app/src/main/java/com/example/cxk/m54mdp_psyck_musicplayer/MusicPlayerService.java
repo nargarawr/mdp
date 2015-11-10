@@ -17,7 +17,7 @@ public class MusicPlayerService extends Service {
     @Override
     public void onCreate() {
         // TODO Auto-generated method stub
-        Log.d("g54mdp", "service onCreate");
+        Log.d("g54mdp", "MusicPlayerService service onCreate");
         super.onCreate();
         musicPlayer = new MusicPlayer(getApplicationContext());
         broadcastManager = LocalBroadcastManager.getInstance(this);
@@ -26,21 +26,21 @@ public class MusicPlayerService extends Service {
     @Override
     public IBinder onBind(Intent arg0) {
         // TODO Auto-generated method stub
-        Log.d("g54mdp", "service onBind");
+        Log.d("g54mdp", "MusicPlayerService service onBind");
         return binder;
     }
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         // TODO Auto-generated method stub
-        Log.d("g54mdp", "service onStartCommand");
+        Log.d("g54mdp", "MusicPlayerService service onStartCommand");
         return Service.START_STICKY;
     }
 
     @Override
     public void onDestroy() {
         // TODO Auto-generated method stub
-        Log.d("g54mdp", "service onDestroy");
+        Log.d("g54mdp", "MusicPlayerService service onDestroy");
         musicPlayer.running = false;
         musicPlayer = null;
         super.onDestroy();
@@ -49,26 +49,26 @@ public class MusicPlayerService extends Service {
     @Override
     public void onRebind(Intent intent) {
         // TODO Auto-generated method stub
-        Log.d("g54mdp", "service onRebind");
+        Log.d("g54mdp", "MusicPlayerService service onRebind");
         super.onRebind(intent);
     }
 
     @Override
     public boolean onUnbind(Intent intent) {
         // TODO Auto-generated method stub
-        Log.d("g54mdp", "service onUnbind");
+        Log.d("g54mdp", "MusicPlayerService service onUnbind");
         return super.onUnbind(intent);
     }
 
 
     public class MusicPlayerBinder extends Binder {
         void togglePlayback() {
-            Log.d("binder","void togglePlayback()");
+            Log.d("myapp","MusicPlayerBinder void togglePlayback()");
             MusicPlayerService.this.togglePlayback();
         }
 
         void loadMusic(String[] music) {
-            Log.d("binder", "void loadMusic()");
+            Log.d("myapp", "MusicPlayerBinder void loadMusic()");
             MusicPlayerService.this.loadMusic(music);
         }
 
@@ -83,12 +83,12 @@ public class MusicPlayerService extends Service {
 
     public void togglePlayback() {
         musicPlayer.togglePlayback();
-        Log.d("service","public void togglePlayback()");
+        Log.d("myapp","MusicPlayerService public void togglePlayback()");
     }
 
     public void loadMusic(String[] music){
         musicPlayer.loadMusicIntoPlaybackQueue(music);
-        Log.d("binder", "void loadMusic()");
+        Log.d("myapp", "MusicPlayerService void loadMusic()");
     }
 
     public boolean isPlaying() {

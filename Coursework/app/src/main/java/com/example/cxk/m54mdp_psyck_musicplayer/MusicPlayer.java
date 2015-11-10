@@ -32,15 +32,14 @@ public class MusicPlayer extends Thread implements Runnable {
         this.mediaPlayer = new MediaPlayer();
         this.mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         this.context = context;
-
     }
 
     public void run() {
-        Log.d("MusicPlayer", "public void run()");
+        Log.d("myapp", "MusicPlayer public void run()");
     }
 
     public void togglePlayback() {
-        Log.d("MusicPlayer", "public void togglePlayback()");
+        Log.d("myapp", "MusicPlayer public void togglePlayback()");
         if (mediaPlayer.isPlaying()) {
             mediaPlayer.pause();
         } else {
@@ -62,12 +61,12 @@ public class MusicPlayer extends Thread implements Runnable {
                     this.hasDataSource = true;
                     mediaPlayer.prepare();
                     mediaPlayer.start();
-                    Log.d("MusicPlayer", "playing song: " + this.playbackQueue.getSong());
+                    Log.d("myapp", "MusicPlayer playing song: " + this.playbackQueue.getSong());
                 } catch (IOException e) {
-                    Log.e("IOException", "Could not load the file");
+                    Log.d("myapp", "MusicPlayer Could not load the file");
                     e.printStackTrace();
                 } catch (Exception e) {
-                    Log.d("exception", "there was one");
+                    Log.d("myapp", "MusicPlayer there was one");
                     e.printStackTrace();
                 }
             }
@@ -76,7 +75,7 @@ public class MusicPlayer extends Thread implements Runnable {
 
 
     public void loadMusicIntoPlaybackQueue(String[] music) {
-        Log.d("MusicPlayer", "public void loadMusic()");
+        Log.d("myapp", "MusicPlayer public void loadMusic()");
         this.playbackQueue.addSongsToQueue(music);
     }
 
