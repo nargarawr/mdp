@@ -84,6 +84,7 @@ public class MediaContentProvider extends ListActivity {
         int colsToDisplayLocation[];
         int layout;
         String whereClause = null;
+        String sortBy = null;
 
         if (!(media_type.equals(SONG))) {
             // If we're getting albums or artists, we only want that specific field
@@ -97,6 +98,7 @@ public class MediaContentProvider extends ListActivity {
             colsToDisplay = new String[]{TRACK, TITLE, DURATION};
             colsToDisplayLocation = new int[]{R.id.song_number, R.id.main_display, R.id.song_duration};
             layout = R.layout.song_media_list_entry;
+            sortBy = TRACK + " ASC";
         }
 
         // Here we define the where clause for our query. If we're at the artist selection stage we
@@ -116,7 +118,7 @@ public class MediaContentProvider extends ListActivity {
 
         // Actually get the content now
         ContentResolver cr = getContentResolver();
-        Cursor cursor = cr.query(content_uri, colsToSelect, whereClause, null, null);
+        Cursor cursor = cr.query(content_uri, colsToSelect, whereClause, null, sortBy);
 
         // Display the content in the correct view
         SimpleCursorAdapter sca = new SimpleCursorAdapter(
@@ -217,9 +219,10 @@ public class MediaContentProvider extends ListActivity {
     private void getAllSongsForAlbumAndReturn(String artist, String album, String songName) {
         String colsToSelect[] = {ID, TRACK, TITLE, ARTIST, DURATION, ALBUM, FILEPATH};
         String whereClause = ARTIST + " = '" + artist + "' AND " + ALBUM + " = '" + album + "'";
+        String sortBy = TRACK + " ASC";
 
         ContentResolver cr = getContentResolver();
-        Cursor cursor = cr.query(content_uri, colsToSelect, whereClause, null, null);
+        Cursor cursor = cr.query(content_uri, colsToSelect, whereClause, null, sortBy);
 
         Intent result = new Intent();
         Bundle bundle = new Bundle();

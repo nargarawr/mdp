@@ -1,29 +1,19 @@
 package com.example.cxk.m54mdp_psyck_musicplayer;
 
 import android.content.Context;
-import android.content.Intent;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Environment;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
-import android.widget.Button;
-
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 
 public class MusicPlayer extends Thread implements Runnable {
 
-    private static final String ACTION_PLAY = "ACTION_PLAY";
-    public boolean running = true;
     private PlaybackQueue playbackQueue;
     private boolean hasDataSource = false;
-
-    MediaPlayer mediaPlayer;
-    Context context;
-
+    private MediaPlayer mediaPlayer;
+    private Context context;
 
     public MusicPlayer(Context context) {
         this.start();

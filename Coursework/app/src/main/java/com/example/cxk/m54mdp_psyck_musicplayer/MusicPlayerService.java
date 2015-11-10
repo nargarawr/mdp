@@ -43,7 +43,6 @@ public class MusicPlayerService extends Service {
     public void onDestroy() {
         // TODO Auto-generated method stub
         Log.d("myapp", "MusicPlayerService service onDestroy");
-        musicPlayer.running = false;
         musicPlayer = null;
         super.onDestroy();
     }
