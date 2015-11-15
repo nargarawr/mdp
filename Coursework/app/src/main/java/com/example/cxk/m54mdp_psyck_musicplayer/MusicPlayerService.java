@@ -10,43 +10,64 @@ import android.util.Log;
 
 import java.util.ArrayList;
 
+/**
+ * TODO
+ */
 public class MusicPlayerService extends Service {
 
     private final IBinder binder = new MusicPlayerBinder();
     private MusicPlayer musicPlayer;
     private LocalBroadcastManager broadcastManager;
 
+    /**
+     * TODO
+     */
     @Override
     public void onCreate() {
-        // TODO Auto-generated method stub
         Log.d("myapp", "MusicPlayerService service onCreate");
         super.onCreate();
         musicPlayer = new MusicPlayer(getApplicationContext());
         broadcastManager = LocalBroadcastManager.getInstance(this);
     }
 
+    /**
+     * TODO
+     * @param arg0
+     * @return
+     */
     @Override
     public IBinder onBind(Intent arg0) {
-        // TODO Auto-generated method stub
         Log.d("myapp", "MusicPlayerService service onBind");
         return binder;
     }
 
+    /**
+     * TODO
+     * @param intent
+     * @param flags
+     * @param startId
+     * @return
+     */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        // TODO Auto-generated method stub
         Log.d("myapp", "MusicPlayerService service onStartCommand");
         return Service.START_STICKY;
     }
 
+    /**
+     * TODO
+     */
     @Override
     public void onDestroy() {
-        // TODO Auto-generated method stub
         Log.d("myapp", "MusicPlayerService service onDestroy");
         musicPlayer = null;
         super.onDestroy();
     }
 
+    /**
+     * TODO
+     * @param intent
+     */
     @Override
     public void onRebind(Intent intent) {
         // TODO Auto-generated method stub
@@ -54,6 +75,11 @@ public class MusicPlayerService extends Service {
         super.onRebind(intent);
     }
 
+    /**
+     * TODO
+     * @param intent
+     * @return
+     */
     @Override
     public boolean onUnbind(Intent intent) {
         // TODO Auto-generated method stub
@@ -61,25 +87,43 @@ public class MusicPlayerService extends Service {
         return super.onUnbind(intent);
     }
 
-
+    /**
+     * TODO
+     */
     public void beginPlayback() {
         musicPlayer.beginPlayback();
         Log.d("myapp", "MusicPlayerService public void beginPlayback()");
     }
 
+    /**
+     * TODO
+     */
     public void pausePlayback() {
         musicPlayer.pausePlayback();
     }
 
+    /**
+     * TODO
+     * @param songs
+     * @param start_from
+     */
     public void loadMusic(ArrayList<Song> songs, int start_from) {
         musicPlayer.loadMusicIntoPlaybackQueue(songs, start_from);
         Log.d("myapp", "MusicPlayerService void loadMusic()");
     }
 
+    /**
+     * TODO
+     * @return
+     */
     public boolean isPlaying() {
         return musicPlayer.isPlaying();
     }
 
+    /**
+     * TODO
+     * @param message
+     */
     public void playbackComplete(String message) {
         Intent intent = new Intent("PBFIN");
         if (message != null)
@@ -87,49 +131,151 @@ public class MusicPlayerService extends Service {
         this.broadcastManager.sendBroadcast(intent);
     }
 
+    /**
+     * TODO
+     * @return
+     */
     public boolean hasQueue() {
         return musicPlayer.hasQueue();
     }
 
+    /**
+     * TODO
+     */
     public void stopPlayback() {
         musicPlayer.stopPlayback();
     }
 
+    /**
+     * TODO
+     */
     public void clearQueue() {
         musicPlayer.clearQueue();
     }
 
+    /**
+     * TODO
+     */
+    public void playNext () {
+        musicPlayer.playNext();
+    }
+
+    /**
+     * TODO
+     */
+    public void playPrevious() {
+        musicPlayer.playPrevious();
+    }
+
+    /**
+     * TODO
+     * @param loopingAll
+     * @param loopingOne
+     */
+    public void setRepeatSettings(boolean loopingAll, boolean loopingOne) {
+        musicPlayer.setRepeatSettings(loopingAll, loopingOne);
+    }
+
+    /**
+     *
+     * @param shuffle
+     */
+    public void setShuffleSetting(boolean shuffle) {
+        musicPlayer.setShuffleSetting(shuffle);
+    }
+
+    /**
+     * TODO
+     */
     public class MusicPlayerBinder extends Binder {
+        /**
+         * TODO
+         */
         void beginPlayback() {
             Log.d("myapp", "MusicPlayerBinder void beginPlayback()");
             MusicPlayerService.this.beginPlayback();
         }
 
+        /**
+         * TODO
+         * @param songs
+         * @param start_from
+         */
         void loadMusic(ArrayList<Song> songs, int start_from) {
             Log.d("myapp", "MusicPlayerBinder void loadMusic()");
             MusicPlayerService.this.loadMusic(songs, start_from);
         }
 
+        /**
+         * TODO
+         */
         void pausePlayback() {
             MusicPlayerService.this.pausePlayback();
         }
 
+        /**
+         * TODO
+         */
         void stopPlayback() {
             MusicPlayerService.this.stopPlayback();
         }
 
+        /**
+         * TODO
+         */
         void clearQueue() {
             MusicPlayerService.this.clearQueue();
         }
 
+        /**
+         * TODO
+         * @return
+         */
         boolean isPlaying() {
             return MusicPlayerService.this.isPlaying();
         }
 
+        /**
+         * TODO
+         * @return
+         */
         boolean hasQueue() {
             return MusicPlayerService.this.hasQueue();
         }
+        /**
+         * TODO
+         */
+        void playNext () {
+            MusicPlayerService.this.playNext();
+        }
+        /**
+         * TODO
+         */
+        void playPrevious () {
+            MusicPlayerService.this.playPrevious();
+        }
 
+        /**
+         * TODO
+         * @param loopingAll
+         * @param loopingOne
+         */
+        void setRepeatSettings(boolean loopingAll, boolean loopingOne ){
+            MusicPlayerService.this.setRepeatSettings(loopingAll, loopingOne);
+        }
+
+        /**
+         *
+         * @param shuffle
+         */
+        void setShuffleSetting(boolean shuffle) {
+            MusicPlayerService.this.setShuffleSetting(shuffle);
+        }
+
+        /**
+         * TODO
+         * @return
+         */
         MusicPlayerService getService() {
             return MusicPlayerService.this;
         }

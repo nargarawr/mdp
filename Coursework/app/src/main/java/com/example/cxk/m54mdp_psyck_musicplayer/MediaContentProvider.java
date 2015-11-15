@@ -1,30 +1,37 @@
 package com.example.cxk.m54mdp_psyck_musicplayer;
 
+import android.Manifest;
 import android.app.Activity;
 import android.app.ListActivity;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.database.Cursor;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.view.View;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
-import android.util.Log;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 /**
- * The MediaContentProvider class is used to retrieve and display artists, albums and songs on the phone.
- * It is called from the MainActivity, with a {media_type} of ARTIST. This will display all distinct artists
+ * Class MediaContentProvider
+ * <p/>
+ * Used to retrieve and display artists, albums and songs on the phone.
+ * It is called from the PlayerActivity, with a {media_type} of ARTIST. Which will display all distinct artists
  * on the user's phone. Clicking on one of these artists will cause this class to call itself, but with
  * a {media_type} of ALBUM. This will then list all distinct albums for this artist. Clicking on one
- * of the artists will cause the class to call itself for a second time (now three copies will be running)
+ * of the albums will cause the class to call itself for a second time (now three copies will be running)
  * and display all songs for the provided artist and album combination. Clicking on one of these songs
  * will pass back the song name, album name, and artist name of the song that was selected. From this
- * information, the MainActivity will call another query which will get the whole album, and start
+ * information, the PlayerActivity will call another query which will get the whole album, and start
  * playing the artist from the selected track.
  */
 public class MediaContentProvider extends ListActivity {
@@ -32,6 +39,9 @@ public class MediaContentProvider extends ListActivity {
     // Request code for when deeper levels of the MediaContentProvider finish
     static final int ALBUM_REQUEST_CODE = 1;
     static final int SONG_REQUEST_CODE = 2;
+
+    // Reuqest code for when we ask for thh READ_EXTERNAL_STORAGE
+    static final int PERMISSION_REQUEST_CODE = 3;
 
     // Used for passing the Intent out of the class back to MainActivty
     final static String SONG_ARRAY = "SONG_ARRAY";
@@ -56,9 +66,8 @@ public class MediaContentProvider extends ListActivity {
     private String artist_filter;
     private String album_filter;
 
-
     /**
-     * Code that is executed
+     * TODO
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,7 +79,71 @@ public class MediaContentProvider extends ListActivity {
         artist_filter = bundle.getString(ARTIST, null);
         album_filter = bundle.getString(ALBUM, null);
 
-        getContent();
+        TextView listTitle = (TextView) findViewById(R.id.listTitle);
+        if (media_type.equals(ALBUM)) {
+            listTitle.setText(artist_filter);
+        } else if (media_type.equals(SONG)) {
+            listTitle.setText(album_filter);
+
+            // Quickly loop through the songs and change the duration from Milliseconds in MM:SS format.
+            // Could have probably implemented a custom CursorAdapter, but this seemed easier for such
+            // a small thing. We have to use a Runnable here because otherwise the code will run before
+            // any content has been displayed on the page
+            final ListView list = (ListView) findViewById(android.R.id.list);
+            list.post(new Runnable() {
+                @Override
+                public void run() {
+                    int childCount = list.getChildCount();
+                    for (int i = 0; i < childCount; i++) {
+                        View v = list.getChildAt(i);
+                        TextView songDuration = (TextView) v.findViewById(R.id.song_duration);
+                        songDuration.setText(getFormattedTime(songDuration.getText().toString()));
+                    }
+                }
+            });
+        }
+
+        // As of Android 6.0, with a target SDK of 23 of higher, you have to specifically request
+        // a dangerous permission if you're going to use it. Because my phone fits these requirements,
+        // I have added these permission checks so I can test my application both on the emulator,
+        // and on my real phone
+        int readPermission = ContextCompat.checkSelfPermission(
+                MediaContentProvider.this,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+        );
+        // If we don't have the permission, ask for it, otherwise read from the sd card
+        if (media_type.equals(ARTIST) && readPermission != PackageManager.PERMISSION_GRANTED) {
+            ActivityCompat.requestPermissions(
+                    MediaContentProvider.this,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},
+                    PERMISSION_REQUEST_CODE
+            );
+        } else {
+            getContent();
+        }
+    }
+
+    /**
+     * After asking for permission to access the external storage, we call this method to continue
+     * processing. If the permission is allowed, we get the content from the SD card and continue.
+     * Otherwise we return to the PlayerActivity and do nothing
+     *
+     * @param requestCode  The request code of this permission
+     * @param permissions  The permissions asked for
+     * @param grantResults The permissions granted
+     */
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSION_REQUEST_CODE: {
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    getContent();
+                } else {
+                    // If permissions are denied, close the window as if nothing happened
+                    finish();
+                }
+            }
+        }
     }
 
     /**
@@ -106,29 +179,35 @@ public class MediaContentProvider extends ListActivity {
         // selection stage, we need to only display albums for the artist we selected in the artist stage,
         // and if we're on the song selection stage, we should only display the songs for the given artist
         // and album.
-        if (media_type.equals(ARTIST)) {
-            whereClause = " 1=1 ) GROUP BY ( " + ARTIST;
-        } else if (media_type.equals(ALBUM)) {
-            whereClause = ARTIST + " = '" + artist_filter + "'" +
-                    " AND 1=1 ) GROUP BY ( " + ARTIST;
-        } else if (media_type.equals(SONG)) {
-            whereClause = ARTIST + " = '" + artist_filter + "'" +
-                    " AND " + ALBUM + " = '" + album_filter + "'";
+        switch (media_type) {
+            case ARTIST:
+                whereClause = " 1=1 ) GROUP BY ( " + ARTIST;
+                break;
+            case ALBUM:
+                whereClause = ARTIST + " = '" + artist_filter + "'" +
+                        " AND 1=1 ) GROUP BY ( " + ARTIST;
+                break;
+            case SONG:
+                whereClause = ARTIST + " = '" + artist_filter + "'" +
+                        " AND " + ALBUM + " = '" + album_filter + "'";
+                break;
         }
 
         // Actually get the content now
         ContentResolver cr = getContentResolver();
         Cursor cursor = cr.query(content_uri, colsToSelect, whereClause, null, sortBy);
 
-        // Display the content in the correct view
-        SimpleCursorAdapter sca = new SimpleCursorAdapter(
-                this,
-                layout,
-                cursor,
-                colsToDisplay,
-                colsToDisplayLocation
-        );
-        this.setListAdapter(sca);
+        if (cursor != null && cursor.getCount() > 0) {
+            // Display the content in the correct view
+            SimpleCursorAdapter sca = new SimpleCursorAdapter(
+                    this,
+                    layout,
+                    cursor,
+                    colsToDisplay,
+                    colsToDisplayLocation
+            );
+            this.setListAdapter(sca);
+        }
     }
 
     /**
@@ -210,7 +289,7 @@ public class MediaContentProvider extends ListActivity {
     /**
      * Gets all songs for the given artist and album, and then returns this and ends the activity.
      * Also passes back a {start_from} parameter, which is the position of the song that we should
-     * start playback from (determined by the value of {song}).
+     * start playback from (determined by the value of {songName}).
      *
      * @param artist   The artist to playback from
      * @param album    The album to playback from
@@ -258,10 +337,20 @@ public class MediaContentProvider extends ListActivity {
         setResult(Activity.RESULT_OK, result);
         finish();
     }
+
+    /**
+     * Converts a song's duration from milliseconds to HH:MM:SS
+     *
+     * @param timeInMs The duration of a song in milliseconds
+     * @return The formatted time
+     */
+    public String getFormattedTime(String timeInMs) {
+        long ms = Long.parseLong(timeInMs);
+
+        String formatted = String.format("%02d:%02d",
+                TimeUnit.MILLISECONDS.toMinutes(ms),
+                TimeUnit.MILLISECONDS.toSeconds(ms) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(ms))
+        );
+        return formatted;
+    }
 }
-
-
-
-
-
-

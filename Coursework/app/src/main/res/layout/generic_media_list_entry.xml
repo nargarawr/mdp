@@ -1,12 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="horizontal" android:layout_width="match_parent"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textSize="16sp"
+        android:textColor="#000000"
+        android:paddingTop="10sp"
+        android:paddingBottom="10sp"
+        android:paddingStart="10sp"
+        android:paddingEnd="10sp"
         android:id="@+id/main_display" />
 
 </LinearLayout>

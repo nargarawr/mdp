@@ -1,3 +1,4 @@
 <resources>
     <string name="app_name">m54mdp-psyck-musicplayer</string>
+    <string name="listview_title">Your Music</string>
 </resources>

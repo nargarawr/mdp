@@ -12,13 +12,34 @@
         android:layout_height="match_parent"
         android:layout_centerHorizontal="true"
         android:weightSum="1">
-        <Button
-            android:layout_width="wrap_content"
+
+        <LinearLayout
+            android:orientation="horizontal"
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:id="@+id/playPauseButton"
-            android:onClick="onPlayPauseClick"
-            android:text="Play"
-            android:layout_gravity="center_horizontal" />
+            android:layout_gravity="center_horizontal">
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Previous"
+                android:id="@+id/prevButton"
+                android:onClick="onPreviousClick" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/playPauseButton"
+                android:onClick="onPlayPauseClick"
+                android:text="Play" />
+
+            <Button
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="NEXT"
+                android:id="@+id/nextButton"
+                android:onClick="onNextClick" />
+        </LinearLayout>
 
         <Button
             android:layout_width="wrap_content"
@@ -27,6 +48,30 @@
             android:id="@+id/browseButton"
             android:layout_gravity="center_horizontal"
             android:onClick="onBrowseClick" />
+
+        <RadioGroup
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content">
+            <RadioButton android:id="@+id/radio_repeatOne"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Repeat One"
+                android:onClick="onRepeatSettingClick"/>
+            <RadioButton android:id="@+id/radio_repeatAll"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Repeat All"
+                android:onClick="onRepeatSettingClick"/>
+        </RadioGroup>
+
+        <CheckBox
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Shuffle"
+            android:id="@+id/shuffleCheck"
+            android:checked="false"
+            android:onClick="onShuffleSettingClick" />
+
     </LinearLayout>
 
 </RelativeLayout>

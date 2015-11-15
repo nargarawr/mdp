@@ -10,15 +10,24 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.RadioButton;
 
 import java.util.ArrayList;
 
+/**
+ * TODO
+ */
 public class PlayerActivity extends AppCompatActivity {
 
     private MusicPlayerService.MusicPlayerBinder musicPlayerService = null;
-
     static final int MEDIA_CONTENT_REQUEST_CODE = 1;
 
+    /**
+     * TODO
+     *
+     * @param savedInstanceState
+     */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -31,6 +40,11 @@ public class PlayerActivity extends AppCompatActivity {
         );
     }
 
+    /**
+     * TODO
+     *
+     * @param v
+     */
     public void onPlayPauseClick(View v) {
         Log.d("myapp", "PlayerActivity  public void onPlayPauseClick(View v)");
         Button playPauseButton = (Button) findViewById(R.id.playPauseButton);
@@ -50,9 +64,13 @@ public class PlayerActivity extends AppCompatActivity {
             playPauseButton.setText("Pause");
             musicPlayerService.beginPlayback();
         }
-
     }
 
+    /**
+     * TODO
+     *
+     * @param v
+     */
     public void onBrowseClick(View v) {
         Log.d("myapp", "PlayerActivity public void onBrowseClick(View v)");
 
@@ -65,6 +83,74 @@ public class PlayerActivity extends AppCompatActivity {
         startActivityForResult(intent, MEDIA_CONTENT_REQUEST_CODE);
     }
 
+    /**
+     * TODO
+     *
+     * @param v
+     */
+    public void onNextClick(View v) {
+        Log.d("myapp", "PlayerActivity public void onNextClick(View v)");
+
+        // If there is no music queued yet, do nothing
+        if (!(musicPlayerService.hasQueue())) {
+            Log.d("myapp", "has no queue so will return");
+            return;
+        }
+
+        musicPlayerService.playNext();
+    }
+
+    /**
+     * TODO
+     *
+     * @param v
+     */
+    public void onPreviousClick(View v) {
+        Log.d("myapp", "PlayerActivity public void onPreviousClick(View v)");
+
+        // If there is no music queued yet, do nothing
+        if (!(musicPlayerService.hasQueue())) {
+            Log.d("myapp", "has no queue so will return");
+            return;
+        }
+
+        musicPlayerService.playPrevious();
+    }
+
+    /**
+     * TODO
+     * @param v
+     */
+    public void onRepeatSettingClick(View v) {
+        boolean checked = ((RadioButton) v).isChecked();
+
+        // Check which radio button was clicked
+        switch (v.getId()) {
+            case R.id.radio_repeatAll:
+                musicPlayerService.setRepeatSettings(checked, !checked);
+                break;
+            case R.id.radio_repeatOne:
+                musicPlayerService.setRepeatSettings(!checked, checked);
+                break;
+        }
+    }
+
+    /**
+     * TODO
+     * @param v
+     */
+    public void onShuffleSettingClick(View v){
+        boolean checked = ((CheckBox) v).isChecked();
+        musicPlayerService.setShuffleSetting(checked);
+    }
+
+    /**
+     * TODO
+     *
+     * @param requestCode
+     * @param resultCode
+     * @param data
+     */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == MEDIA_CONTENT_REQUEST_CODE && resultCode == RESULT_OK) {
@@ -90,38 +176,11 @@ public class PlayerActivity extends AppCompatActivity {
         }
     }
 
-    private ServiceConnection serviceConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            // TODO Auto-generated method stub
-            Log.d("myapp", "PlayerActivity onServiceConnected");
-            musicPlayerService = (MusicPlayerService.MusicPlayerBinder) service;
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            // TODO Auto-generated method stub
-            Log.d("myapp", "PlayerActivity onServiceDisconnected");
-            musicPlayerService = null;
-        }
-    };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    /**
+     * TODO
+     */
     @Override
     protected void onDestroy() {
-        // TODO Auto-generated method stub
         super.onDestroy();
         Log.d("myapp", "PlayerActivity onDestroy");
 
@@ -131,34 +190,32 @@ public class PlayerActivity extends AppCompatActivity {
         }
     }
 
-    @Override
-    protected void onPause() {
-        // TODO Auto-generated method stub
-        super.onPause();
-        Log.d("myapp", "PlayerActivity onPause");
-    }
+    /**
+     * TODO
+     */
+    private ServiceConnection serviceConnection = new ServiceConnection() {
 
-    @Override
-    protected void onResume() {
-        // TODO Auto-generated method stub
-        super.onResume();
-        Log.d("myapp", "PlayerActivity onResume");
-    }
+        /**
+         * TODO
+         * @param name
+         * @param service
+         */
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            // TODO Auto-generated method stub
+            Log.d("myapp", "PlayerActivity onServiceConnected");
+            musicPlayerService = (MusicPlayerService.MusicPlayerBinder) service;
+        }
 
-    @Override
-    protected void onStart() {
-        // TODO Auto-generated method stub
-
-        Log.d("myapp", "PlayerActivity onStart");
-
-        super.onStart();
-    }
-
-    @Override
-    protected void onStop() {
-        // TODO Auto-generated method stub
-        Log.d("myapp", "PlayerActivity onStop");
-
-        super.onStop();
-    }
+        /**
+         * TODO
+         * @param name
+         */
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            // TODO Auto-generated method stub
+            Log.d("myapp", "PlayerActivity onServiceDisconnected");
+            musicPlayerService = null;
+        }
+    };
 }
