@@ -75,11 +75,8 @@ public class PlaybackQueue {
 
             // If we overflow the ArrayList, either reset to 0 if looping all, or return false, and stop
             if (this.index >= songs.size()) {
-                if (loopingAll) {
-                    this.index = 0;
-                } else {
-                    return false;
-                }
+                this.index = 0;
+                return loopingAll;
             }
         }
 
@@ -95,7 +92,7 @@ public class PlaybackQueue {
      */
     public void moveToPreviousSong(boolean loopingAll, boolean loopingOne, boolean shuffle) {
         // If we're repeating this song, do nothing
-        if (loopingOne || !loopingAll) {
+        if (loopingOne || (!loopingAll && this.index == 0)) {
             return;
         }
 

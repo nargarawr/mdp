@@ -12,12 +12,14 @@
         android:paddingBottom="10sp"
         android:gravity="center"
         android:id="@+id/listTitle"
+        android:background="@drawable/border_bottom"
         android:text="@string/listview_title" />
 
     <ListView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:id="@android:id/list"
+        android:fastScrollEnabled="false"
         android:layout_gravity="center_horizontal" />
 
 

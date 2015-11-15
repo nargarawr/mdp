@@ -20,12 +20,6 @@
 
         <activity android:name=".MediaContentProvider" >
         </activity>
-
-        <receiver android:name=".Broadcaster">
-            <intent-filter>
-                <action android:name="PLAYBACK_STOPPED" />
-            </intent-filter>
-        </receiver>
     </application>
 
 </manifest>

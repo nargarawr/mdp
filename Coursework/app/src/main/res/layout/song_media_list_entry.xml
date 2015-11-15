@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:orientation="horizontal" android:layout_width="match_parent"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:orientation="horizontal"
+    android:layout_width="match_parent"
     android:layout_height="match_parent">
 
     <TextView
@@ -9,9 +10,10 @@
         android:textSize="16sp"
         android:textColor="#000000"
         android:paddingTop="10sp"
-        android:paddingBottom="10sp"
-        android:paddingStart="5sp"
+        android:paddingBottom="20sp"
+        android:paddingStart="10sp"
         android:paddingEnd="5sp"
+        android:text="01"
         android:id="@+id/song_number" />
 
     <TextView
@@ -20,20 +22,24 @@
         android:textSize="16sp"
         android:textColor="#000000"
         android:paddingTop="10sp"
-        android:paddingBottom="10sp"
         android:paddingStart="5sp"
         android:paddingEnd="5sp"
-        android:id="@+id/main_display" />
+        android:text="Song Name"
+        android:id="@+id/main_display"
+        android:layout_alignParentTop="true"
+        android:layout_toEndOf="@+id/song_number" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textSize="12sp"
         android:textColor="#666666"
-        android:paddingTop="10sp"
         android:paddingBottom="10sp"
         android:paddingStart="5sp"
         android:paddingEnd="5sp"
-        android:id="@+id/song_duration" />
+        android:text="04:00"
+        android:id="@+id/song_duration"
+        android:layout_below="@+id/main_display"
+        android:layout_toEndOf="@+id/song_number" />
 
-</LinearLayout>
+</RelativeLayout>

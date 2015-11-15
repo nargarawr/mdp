@@ -11,8 +11,9 @@
         android:textColor="#000000"
         android:paddingTop="10sp"
         android:paddingBottom="10sp"
-        android:paddingStart="10sp"
+        android:paddingStart="15sp"
         android:paddingEnd="10sp"
+        android:text="album/artist name"
         android:id="@+id/main_display" />
 
 </LinearLayout>

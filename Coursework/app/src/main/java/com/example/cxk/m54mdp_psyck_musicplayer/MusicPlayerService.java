@@ -1,6 +1,7 @@
 package com.example.cxk.m54mdp_psyck_musicplayer;
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Binder;
@@ -17,7 +18,7 @@ public class MusicPlayerService extends Service {
 
     private final IBinder binder = new MusicPlayerBinder();
     private MusicPlayer musicPlayer;
-    private LocalBroadcastManager broadcastManager;
+    private LocalBroadcastManager broadcaster;
 
     /**
      * TODO
@@ -26,8 +27,8 @@ public class MusicPlayerService extends Service {
     public void onCreate() {
         Log.d("myapp", "MusicPlayerService service onCreate");
         super.onCreate();
-        musicPlayer = new MusicPlayer(getApplicationContext());
-        broadcastManager = LocalBroadcastManager.getInstance(this);
+        broadcaster = LocalBroadcastManager.getInstance(this);
+        musicPlayer = new MusicPlayer(getApplicationContext(), broadcaster);
     }
 
     /**
@@ -88,6 +89,13 @@ public class MusicPlayerService extends Service {
     }
 
     /**
+     * @return
+     */
+    public Song getPlayingSong(){
+       return  musicPlayer.getPlayingSong();
+    }
+
+    /**
      * TODO
      */
     public void beginPlayback() {
@@ -118,17 +126,6 @@ public class MusicPlayerService extends Service {
      */
     public boolean isPlaying() {
         return musicPlayer.isPlaying();
-    }
-
-    /**
-     * TODO
-     * @param message
-     */
-    public void playbackComplete(String message) {
-        Intent intent = new Intent("PBFIN");
-        if (message != null)
-            intent.putExtra("PBFIN", message);
-        this.broadcastManager.sendBroadcast(intent);
     }
 
     /**
@@ -175,7 +172,6 @@ public class MusicPlayerService extends Service {
     public void setRepeatSettings(boolean loopingAll, boolean loopingOne) {
         musicPlayer.setRepeatSettings(loopingAll, loopingOne);
     }
-
     /**
      *
      * @param shuffle
@@ -271,6 +267,14 @@ public class MusicPlayerService extends Service {
         void setShuffleSetting(boolean shuffle) {
             MusicPlayerService.this.setShuffleSetting(shuffle);
         }
+
+        /**
+         * @return
+         */
+        Song getPlayingSong(){
+            return  MusicPlayerService.this.getPlayingSong();
+        }
+
 
         /**
          * TODO

@@ -14,6 +14,7 @@ import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.View;
+import android.widget.AbsListView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
@@ -47,6 +48,9 @@ public class MediaContentProvider extends ListActivity {
     final static String SONG_ARRAY = "SONG_ARRAY";
     final static String START_FROM = "START_FROM";
 
+    // Used to tell the PlayerActivity that there is no music on the phone
+    final static int NO_MUSIC = 10;
+
     // Media store variables for easy access
     final static String ID = MediaStore.Audio.Media._ID;
     final static String TRACK = MediaStore.Audio.Media.TRACK;
@@ -67,7 +71,9 @@ public class MediaContentProvider extends ListActivity {
     private String album_filter;
 
     /**
-     * TODO
+     * Called when the content provider is created and determines which type of results it should
+     * display. If we're loading artists, make sure we have permission to, and if we're loading
+     * songs, add listeners to the listview so we can convert the duration of the songs to a nicer format
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -85,20 +91,35 @@ public class MediaContentProvider extends ListActivity {
         } else if (media_type.equals(SONG)) {
             listTitle.setText(album_filter);
 
-            // Quickly loop through the songs and change the duration from Milliseconds in MM:SS format.
-            // Could have probably implemented a custom CursorAdapter, but this seemed easier for such
-            // a small thing. We have to use a Runnable here because otherwise the code will run before
-            // any content has been displayed on the page
+            // When we create the listview, we call the formatSongDuration function, which will
+            // loop through each element and update the duration to an MM:SS format, instead of
+            // just being in milliseconds. We also do this whenever we scroll
             final ListView list = (ListView) findViewById(android.R.id.list);
             list.post(new Runnable() {
                 @Override
                 public void run() {
-                    int childCount = list.getChildCount();
-                    for (int i = 0; i < childCount; i++) {
-                        View v = list.getChildAt(i);
-                        TextView songDuration = (TextView) v.findViewById(R.id.song_duration);
-                        songDuration.setText(getFormattedTime(songDuration.getText().toString()));
-                    }
+                    formatSongDuration(list);
+                }
+            });
+
+            list.setOnScrollListener(new AbsListView.OnScrollListener() {
+                @Override
+                public void onScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount) {
+                    /*
+                     * The reason that this is included, but commented out, is because there is a bug
+                     * in Android that causes this method to spam the console with tons of
+                     * "requestLayout() improperly called by android.widget.TextView" errors
+                     *
+                     * If this line was to be included, the duration of the songs would be formatted
+                     * as the user is scrolling, which would be a lot nicer than on scroll finished,
+                     * like it is at the moment
+                     */
+                    //formatSongDuration(list);
+                }
+
+                @Override
+                public void onScrollStateChanged(AbsListView view, int scrollState) {
+                    formatSongDuration(list);
                 }
             });
         }
@@ -197,8 +218,14 @@ public class MediaContentProvider extends ListActivity {
         ContentResolver cr = getContentResolver();
         Cursor cursor = cr.query(content_uri, colsToSelect, whereClause, null, sortBy);
 
+        // If there is no music to be found, return and display error toast
+        if (media_type.equals(ARTIST) && cursor.getCount() == 0) {
+            setResult(NO_MUSIC, null);
+            finish();
+        }
+
+        // If there is music, display it in a list view
         if (cursor != null && cursor.getCount() > 0) {
-            // Display the content in the correct view
             SimpleCursorAdapter sca = new SimpleCursorAdapter(
                     this,
                     layout,
@@ -339,13 +366,34 @@ public class MediaContentProvider extends ListActivity {
     }
 
     /**
+     * Used as the onScroll listener for the ListView. Will format each of the visible song durations
+     * on the song display screen into MM:SS format, rather than milliseconds
+     *
+     * @param list The listview to format
+     */
+    public void formatSongDuration(ListView list) {
+        int childCount = list.getChildCount();
+        for (int i = 0; i < childCount; i++) {
+            View v = list.getChildAt(i);
+            TextView songDuration = (TextView) v.findViewById(R.id.song_duration);
+            songDuration.setText(getFormattedTime(songDuration.getText().toString()));
+        }
+    }
+
+    /**
      * Converts a song's duration from milliseconds to HH:MM:SS
      *
      * @param timeInMs The duration of a song in milliseconds
      * @return The formatted time
      */
     public String getFormattedTime(String timeInMs) {
-        long ms = Long.parseLong(timeInMs);
+        // Try to convert the ms into a long. If there is an exception, it has already been formatted
+        long ms;
+        try {
+            ms = Long.parseLong(timeInMs);
+        } catch(Exception e){
+            return timeInMs;
+        }
 
         String formatted = String.format("%02d:%02d",
                 TimeUnit.MILLISECONDS.toMinutes(ms),
@@ -353,4 +401,5 @@ public class MediaContentProvider extends ListActivity {
         );
         return formatted;
     }
+
 }

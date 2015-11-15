@@ -24,21 +24,24 @@
                 android:layout_height="wrap_content"
                 android:text="Previous"
                 android:id="@+id/prevButton"
-                android:onClick="onPreviousClick" />
+                android:onClick="onPreviousClick"
+                android:enabled="false" />
 
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:id="@+id/playPauseButton"
                 android:onClick="onPlayPauseClick"
-                android:text="Play" />
+                android:text="Play"
+                android:enabled="false" />
 
             <Button
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="NEXT"
                 android:id="@+id/nextButton"
-                android:onClick="onNextClick" />
+                android:onClick="onNextClick"
+                android:enabled="false" />
         </LinearLayout>
 
         <Button
@@ -52,6 +55,12 @@
         <RadioGroup
             android:layout_width="wrap_content"
             android:layout_height="wrap_content">
+            <RadioButton android:id="@+id/radio_repeatNone"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Repeat None"
+                android:onClick="onRepeatSettingClick"
+                android:checked="true" />
             <RadioButton android:id="@+id/radio_repeatOne"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -71,6 +80,20 @@
             android:id="@+id/shuffleCheck"
             android:checked="false"
             android:onClick="onShuffleSettingClick" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceLarge"
+            android:text="Currently Playing"
+            android:id="@+id/textView" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textAppearance="?android:attr/textAppearanceMedium"
+            android:text="Medium Text"
+            android:id="@+id/currentlyPlaying" />
 
     </LinearLayout>
 
