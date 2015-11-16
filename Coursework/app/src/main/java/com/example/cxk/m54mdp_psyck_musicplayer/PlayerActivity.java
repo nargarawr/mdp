@@ -21,16 +21,24 @@ import android.widget.Toast;
 import java.util.ArrayList;
 
 /**
- * TODO
+ * Class PlayerActivity
+ * <p/>
+ * The Main Activity of the application, which deals with the playing of music,
+ * as well as the interaction of music playback. Allows users to play and pause
+ * a song, select a new song set to play, go to the next song, go to the previous
+ * song, set the shuffle and repeat settings, and displays a UI for the currently
+ * playing song.
  */
 public class PlayerActivity extends AppCompatActivity {
 
-    private MusicPlayerService.MusicPlayerBinder musicPlayerService = null;
     static final int MEDIA_CONTENT_REQUEST_CODE = 1;
+
+    private MusicPlayerBinder musicPlayerService = null;
     private BroadcastReceiver receiver;
 
     /**
      * TODO
+     *
      *
      * @param savedInstanceState
      */
@@ -46,7 +54,7 @@ public class PlayerActivity extends AppCompatActivity {
                 Context.BIND_AUTO_CREATE
         );
 
-        // Sets up the receiver
+        // Sets up the broadcast receiver
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -76,7 +84,7 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     /**
-     * TODO
+     * When the activity is started, register the broadcaster
      */
     @Override
     protected void onStart() {
@@ -88,7 +96,7 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     /**
-     * TODO
+     * When the acitivty is stopped, unregister the broadcaster
      */
     @Override
     protected void onStop() {
@@ -97,29 +105,22 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     /**
-     * TODO
+     * Either play or pause the music playback when the pause/play button is clicked
      *
-     * @param v
+     * @param v What was clicked
      */
     public void onPlayPauseClick(View v) {
-        Log.d("myapp", "PlayerActivity  public void onPlayPauseClick(View v)");
-        Button playPauseButton = (Button) findViewById(R.id.playPauseButton);
-
         // If there is no music queued yet, do nothing
         if (!(musicPlayerService.hasQueue())) {
-            Log.d("myapp", "has no queue so will return");
             return;
         }
 
         if (musicPlayerService.isPlaying()) {
-            Log.d("myapp", "is playing, so will pause");
-            playPauseButton.setText("Play");
             musicPlayerService.pausePlayback();
         } else {
-            Log.d("myapp", "is pause, so will play");
-            playPauseButton.setText("Pause");
             musicPlayerService.beginPlayback();
         }
+        updatePlayingUI();
     }
 
     /**
@@ -165,9 +166,9 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     /**
-     * TODO
+     * Updates the musicPlayerService repeating settings
      *
-     * @param v
+     * @param v What was clicked
      */
     public void onRepeatSettingClick(View v) {
         boolean checked = ((RadioButton) v).isChecked();
@@ -186,9 +187,9 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     /**
-     * TODO
+     * Updates the musicPlayerService shuffle setting
      *
-     * @param v
+     * @param v What was clicked
      */
     public void onShuffleSettingClick(View v) {
         boolean checked = ((CheckBox) v).isChecked();
@@ -196,11 +197,14 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     /**
-     * TODO
+     * What do do when another activity, that was launched from this activty,
+     * finishes. If this was from a cancel, do nothing. Otherwise, if there was
+     * no music, show an error. If there was music, load it into the musicPlayerService
+     * and begin playback.
      *
-     * @param requestCode
-     * @param resultCode
-     * @param data
+     * @param requestCode Which activity was launched
+     * @param resultCode  The status of the activity at close
+     * @param data        Any data the activity returns
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
@@ -214,10 +218,6 @@ public class PlayerActivity extends AppCompatActivity {
             Bundle bundle = data.getExtras();
             ArrayList<Song> songs = bundle.getParcelableArrayList(MediaContentProvider.SONG_ARRAY);
             int start_from = bundle.getInt(MediaContentProvider.START_FROM);
-            for (Song s : songs) {
-                Log.d("myapp", s.getNumber() + " " + s.getName() + " " + s.getDuration());
-                Log.d("myapp", s.getFilepath());
-            }
 
             // Overwrite the current queue if there is one
             if (musicPlayerService.hasQueue()) {
@@ -231,9 +231,10 @@ public class PlayerActivity extends AppCompatActivity {
 
             updatePlayingUI();
         } else if (requestCode == MEDIA_CONTENT_REQUEST_CODE && resultCode == MediaContentProvider.NO_MUSIC) {
+            // Couldn't find any music, show an error
             Toast toast = Toast.makeText(
                     getApplicationContext(),
-                    "We could not find any music on your phone!",
+                    "Could not find any music on your phone!",
                     Toast.LENGTH_SHORT
             );
             toast.show();
@@ -241,7 +242,7 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     /**
-     * TODO
+     * What happens when the activity is destroyed, which will unbind the connection to the service
      */
     @Override
     protected void onDestroy() {
@@ -255,30 +256,29 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     /**
-     * TODO
+     * Used to connect from the main activity to the music player service
      */
     private ServiceConnection serviceConnection = new ServiceConnection() {
 
-        /**
-         * TODO
+        /** TODO
+         * What happens when the connection is created, will create a musicPlayerService
+         *
          * @param name
          * @param service
          */
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            // TODO Auto-generated method stub
-            Log.d("myapp", "PlayerActivity onServiceConnected");
-            musicPlayerService = (MusicPlayerService.MusicPlayerBinder) service;
+            musicPlayerService = (MusicPlayerBinder) service;
         }
 
         /**
          * TODO
+         * What happens when the connection is complete, nullifies the musicPlayerService
+         *
          * @param name
          */
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            // TODO Auto-generated method stub
-            Log.d("myapp", "PlayerActivity onServiceDisconnected");
             musicPlayerService = null;
         }
     };

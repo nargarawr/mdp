@@ -1,10 +1,7 @@
 package com.example.cxk.m54mdp_psyck_musicplayer;
 
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
-import android.os.Binder;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
@@ -16,7 +13,7 @@ import java.util.ArrayList;
  */
 public class MusicPlayerService extends Service {
 
-    private final IBinder binder = new MusicPlayerBinder();
+    private MusicPlayerBinder binder;
     private MusicPlayer musicPlayer;
     private LocalBroadcastManager broadcaster;
 
@@ -25,8 +22,8 @@ public class MusicPlayerService extends Service {
      */
     @Override
     public void onCreate() {
-        Log.d("myapp", "MusicPlayerService service onCreate");
         super.onCreate();
+        binder = new MusicPlayerBinder(this);
         broadcaster = LocalBroadcastManager.getInstance(this);
         musicPlayer = new MusicPlayer(getApplicationContext(), broadcaster);
     }
@@ -38,7 +35,6 @@ public class MusicPlayerService extends Service {
      */
     @Override
     public IBinder onBind(Intent arg0) {
-        Log.d("myapp", "MusicPlayerService service onBind");
         return binder;
     }
 
@@ -51,7 +47,6 @@ public class MusicPlayerService extends Service {
      */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.d("myapp", "MusicPlayerService service onStartCommand");
         return Service.START_STICKY;
     }
 
@@ -180,108 +175,4 @@ public class MusicPlayerService extends Service {
         musicPlayer.setShuffleSetting(shuffle);
     }
 
-    /**
-     * TODO
-     */
-    public class MusicPlayerBinder extends Binder {
-        /**
-         * TODO
-         */
-        void beginPlayback() {
-            Log.d("myapp", "MusicPlayerBinder void beginPlayback()");
-            MusicPlayerService.this.beginPlayback();
-        }
-
-        /**
-         * TODO
-         * @param songs
-         * @param start_from
-         */
-        void loadMusic(ArrayList<Song> songs, int start_from) {
-            Log.d("myapp", "MusicPlayerBinder void loadMusic()");
-            MusicPlayerService.this.loadMusic(songs, start_from);
-        }
-
-        /**
-         * TODO
-         */
-        void pausePlayback() {
-            MusicPlayerService.this.pausePlayback();
-        }
-
-        /**
-         * TODO
-         */
-        void stopPlayback() {
-            MusicPlayerService.this.stopPlayback();
-        }
-
-        /**
-         * TODO
-         */
-        void clearQueue() {
-            MusicPlayerService.this.clearQueue();
-        }
-
-        /**
-         * TODO
-         * @return
-         */
-        boolean isPlaying() {
-            return MusicPlayerService.this.isPlaying();
-        }
-
-        /**
-         * TODO
-         * @return
-         */
-        boolean hasQueue() {
-            return MusicPlayerService.this.hasQueue();
-        }
-        /**
-         * TODO
-         */
-        void playNext () {
-            MusicPlayerService.this.playNext();
-        }
-        /**
-         * TODO
-         */
-        void playPrevious () {
-            MusicPlayerService.this.playPrevious();
-        }
-
-        /**
-         * TODO
-         * @param loopingAll
-         * @param loopingOne
-         */
-        void setRepeatSettings(boolean loopingAll, boolean loopingOne ){
-            MusicPlayerService.this.setRepeatSettings(loopingAll, loopingOne);
-        }
-
-        /**
-         *
-         * @param shuffle
-         */
-        void setShuffleSetting(boolean shuffle) {
-            MusicPlayerService.this.setShuffleSetting(shuffle);
-        }
-
-        /**
-         * @return
-         */
-        Song getPlayingSong(){
-            return  MusicPlayerService.this.getPlayingSong();
-        }
-
-
-        /**
-         * TODO
-         * @return
-         */
-        MusicPlayerService getService() {
-            return MusicPlayerService.this;
-        }
-    }
 }

@@ -1,6 +1,5 @@
 package com.example.cxk.m54mdp_psyck_musicplayer;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioManager;
