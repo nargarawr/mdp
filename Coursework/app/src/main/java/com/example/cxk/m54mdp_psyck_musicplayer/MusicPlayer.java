@@ -12,9 +12,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 
 /**
- * TODO
+ * Class MusicPlayer
+ *
+ * Used to interact with a MediaPlayer object, and to mediate interaction from the rest of the application
+ * to this media player.
  */
-public class MusicPlayer extends Thread implements Runnable {
+public class MusicPlayer extends Thread  {
 
     private PlaybackQueue playbackQueue;
     private boolean hasDataSource = false;
@@ -58,56 +61,23 @@ public class MusicPlayer extends Thread implements Runnable {
     }
 
     /**
-     * Plays the next song in the playback queue, or stops the player if there are none
+     * Sends a broadcast to the PlayerActivity so the UI can be updated
      */
-    public void playNext() {
-        // Look at what the next song is
-        boolean successful = this.playbackQueue.moveToNextSong(loopingAll, loopingOne, shuffle);
-
-        // Stop playback and reset the player
-        stopPlayback();
-
-        // If we found another song to play, play it
-        if (successful) {
-            beginPlayback();
-        }
-        sendBroadcast();
+    public void sendBroadcast() {
+        Log.d("myapp-b", "sending broadcast from onCreate of MusicPlayer");
+        Intent intent = new Intent(MUSIC_PLAYER_BROADCAST);
+        broadcaster.sendBroadcast(intent);
     }
 
     /**
-     * Get the song that is currently queued to play
+     * Loads the provided songs into the playback queue for this media player, and sets which is the first song
      *
-     * @return The Song currently queued to play
+     * @param songs      ArrayList of Song objects to be added to the queue
+     * @param start_from Which song we should start playback from
      */
-    public Song getPlayingSong() {
-        return this.playbackQueue.getSong();
-    }
-
-    /**
-     * Plays the prevous song in the playback queue. If we're at the start of the queue, and we're
-     * looping, go to the back of the queue, otherwise keep replaying the first song
-     */
-    public void playPrevious() {
-        this.playbackQueue.moveToPreviousSong(loopingAll, loopingOne, shuffle);
-
-        // Stop playback and reset the player, and play again (previous song will always return a return)
-        stopPlayback();
-        beginPlayback();
-        sendBroadcast();
-    }
-
-    /**
-     * TODO
-     */
-    public void run() {
-        Log.d("myapp", "MusicPlayer public void run()");
-    }
-
-    /**
-     * Pause the player playback
-     */
-    public void pausePlayback() {
-        mediaPlayer.pause();
+    public void loadMusicIntoPlaybackQueue(ArrayList<Song> songs, int start_from) {
+        this.playbackQueue.addSongsToQueue(songs);
+        this.playbackQueue.setIndex(start_from);
     }
 
     /**
@@ -140,14 +110,19 @@ public class MusicPlayer extends Thread implements Runnable {
     }
 
     /**
-     * Loads the provided songs into the playback queue for this media player, and sets which is the first song
-     *
-     * @param songs      ArrayList of Song objects to be added to the queue
-     * @param start_from Which song we should start playback from
+     * Pause the player playback
      */
-    public void loadMusicIntoPlaybackQueue(ArrayList<Song> songs, int start_from) {
-        this.playbackQueue.addSongsToQueue(songs);
-        this.playbackQueue.setIndex(start_from);
+    public void pausePlayback() {
+        mediaPlayer.pause();
+    }
+
+    /**
+     * Ends playback and resets the media player, ready for the next song, if there is one.
+     */
+    public void stopPlayback() {
+        this.mediaPlayer.stop();
+        this.mediaPlayer.reset();
+        this.hasDataSource = false;
     }
 
     /**
@@ -165,16 +140,7 @@ public class MusicPlayer extends Thread implements Runnable {
      * @return boolean Whether the media player has a queue
      */
     public boolean hasQueue() {
-        return this.playbackQueue.length() > 0;
-    }
-
-    /**
-     * Ends playback and resets the media player, ready for the next song, if there is one.
-     */
-    public void stopPlayback() {
-        this.mediaPlayer.stop();
-        this.mediaPlayer.reset();
-        this.hasDataSource = false;
+        return ((this.playbackQueue != null) && (this.playbackQueue.length() > 0));
     }
 
     /**
@@ -182,6 +148,45 @@ public class MusicPlayer extends Thread implements Runnable {
      */
     public void clearQueue() {
         this.playbackQueue.clear();
+    }
+
+    /**
+     * Plays the next song in the playback queue, or stops the player if there are none
+     */
+    public void playNext() {
+        // Look at what the next song is
+        boolean successful = this.playbackQueue.moveToNextSong(loopingAll, loopingOne, shuffle);
+
+        // Stop playback and reset the player
+        stopPlayback();
+
+        // If we found another song to play, play it
+        if (successful) {
+            beginPlayback();
+        }
+        sendBroadcast();
+    }
+
+    /**
+     * Plays the previous song in the playback queue. If we're at the start of the queue, and we're
+     * looping, go to the back of the queue, otherwise keep replaying the first song
+     */
+    public void playPrevious() {
+        this.playbackQueue.moveToPreviousSong(loopingAll, loopingOne, shuffle);
+
+        // Stop playback and reset the player, and play again (previous song will always return a return)
+        stopPlayback();
+        beginPlayback();
+        sendBroadcast();
+    }
+
+    /**
+     * Get the song that is currently queued to play
+     *
+     * @return The Song currently queued to play
+     */
+    public Song getPlayingSong() {
+        return this.playbackQueue.getSong();
     }
 
     /**
@@ -206,12 +211,4 @@ public class MusicPlayer extends Thread implements Runnable {
         this.shuffle = shuffle;
     }
 
-    /**
-     * Sends a broadcast to the PlayerActivity so the UI can be updated
-     */
-    public void sendBroadcast() {
-        Log.d("myapp-b", "sending broadcast from onCreate of MusicPlayer");
-        Intent intent = new Intent(MUSIC_PLAYER_BROADCAST);
-        broadcaster.sendBroadcast(intent);
-    }
 }

@@ -11,10 +11,15 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.View;
+import android.widget.AbsListView;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.ImageButton;
 import android.widget.RadioButton;
+import android.widget.RadioGroup;
+import android.widget.RelativeLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -33,26 +38,33 @@ public class PlayerActivity extends AppCompatActivity {
 
     static final int MEDIA_CONTENT_REQUEST_CODE = 1;
 
-    private MusicPlayerBinder musicPlayerService = null;
+    private MusicPlayerBinder musicPlayerBinder = null;
     private BroadcastReceiver receiver;
 
+    // Private variables that record the state of the shuffle and repeat buttons
+    private int shuffleState = 0;
+    private int repeatState = 0;
+
     /**
-     * TODO
+     * Called when the activity is starting.
      *
-     *
-     * @param savedInstanceState
+     * @param savedInstanceState If the activity is being re-initialized after
+     *                           previously being shut down then this Bundle contains the data it most
+     *                           recently supplied in {@link #onSaveInstanceState}.  <b><i>Note: Otherwise it is null.</i></b>
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
 
-        // Sets up the binder for the service
-        this.bindService(
-                new Intent(this, MusicPlayerService.class),
-                serviceConnection,
-                Context.BIND_AUTO_CREATE
-        );
+        if (savedInstanceState == null) {
+            // Sets up the binder for the service
+            this.bindService(
+                    new Intent(this, MusicPlayerService.class),
+                    serviceConnection,
+                    Context.BIND_AUTO_CREATE
+            );
+        }
 
         // Sets up the broadcast receiver
         receiver = new BroadcastReceiver() {
@@ -64,22 +76,52 @@ public class PlayerActivity extends AppCompatActivity {
     }
 
     /**
+     * Called after {@link #onRestoreInstanceState}, {@link #onRestart}, or
+     * {@link #onPause}, for your activity to start interacting with the user.
+     */
+    @Override
+    protected void onResume() {
+        super.onResume();
+
+        // If this isn't the first launch, update the UI to reflect any changes that may have happened
+        // whilst the activity was not on the top of the stack
+        if (musicPlayerBinder != null && musicPlayerBinder.hasQueue()) {
+            updatePlayingUI();
+        }
+    }
+
+    /**
+     * Called to retrieve per-instance state from an activity before being killed
+     * so that the state can be restored in {@link #onCreate} or
+     * {@link #onRestoreInstanceState} (the {@link Bundle} populated by this method
+     * will be passed to both).
+     *
+     * @param savedInstanceState Bundle in which to place the saved state.
+     */
+    @Override
+    public void onSaveInstanceState(Bundle savedInstanceState) {
+        Log.d("myapp", "Saving instance state");
+        savedInstanceState.putBinder("test", musicPlayerBinder);
+        super.onSaveInstanceState(savedInstanceState);
+    }
+
+    /**
      * Messages are passed back whenever the "Next Song", or "Previous Song" buttons are pressed.
      * We use this information to update the UI to reflects these changes. If the song was changed,
      * and we are still playing music, we can update the UI to display the new song's information.
      * If music is no longer playing, we display that information.
      */
     public void updatePlayingUI() {
-        Button playPauseButton = (Button) findViewById(R.id.playPauseButton);
+        ImageButton playButtonImgButton = (ImageButton) findViewById(R.id.playPauseImageButton);
 
-        if (musicPlayerService.isPlaying()) {
-            playPauseButton.setText("Pause");
+        if (musicPlayerBinder.isPlaying()) {
+            playButtonImgButton.setImageResource(R.drawable.pause_button);
         } else {
-            playPauseButton.setText("Play");
+            playButtonImgButton.setImageResource(R.drawable.play_button);
         }
 
         TextView currentlyPlaying = (TextView) findViewById(R.id.currentlyPlaying);
-        Song playingSong = musicPlayerService.getPlayingSong();
+        Song playingSong = musicPlayerBinder.getPlayingSong();
         currentlyPlaying.setText(playingSong.getName());
     }
 
@@ -111,14 +153,14 @@ public class PlayerActivity extends AppCompatActivity {
      */
     public void onPlayPauseClick(View v) {
         // If there is no music queued yet, do nothing
-        if (!(musicPlayerService.hasQueue())) {
+        if (!(musicPlayerBinder.hasQueue())) {
             return;
         }
 
-        if (musicPlayerService.isPlaying()) {
-            musicPlayerService.pausePlayback();
+        if (musicPlayerBinder.isPlaying()) {
+            musicPlayerBinder.pausePlayback();
         } else {
-            musicPlayerService.beginPlayback();
+            musicPlayerBinder.beginPlayback();
         }
         updatePlayingUI();
     }
@@ -147,8 +189,8 @@ public class PlayerActivity extends AppCompatActivity {
      */
     public void onNextClick(View v) {
         // If there is no music queued yet, do nothing
-        if (musicPlayerService.hasQueue()) {
-            musicPlayerService.playNext();
+        if (musicPlayerBinder.hasQueue()) {
+            musicPlayerBinder.playNext();
         }
     }
 
@@ -160,46 +202,60 @@ public class PlayerActivity extends AppCompatActivity {
      */
     public void onPreviousClick(View v) {
         // If there is no music queued yet, do nothing
-        if (musicPlayerService.hasQueue()) {
-            musicPlayerService.playPrevious();
+        if (musicPlayerBinder.hasQueue()) {
+            musicPlayerBinder.playPrevious();
         }
     }
 
     /**
-     * Updates the musicPlayerService repeating settings
+     * Updates the musicPlayerBinder repeating settings
      *
      * @param v What was clicked
      */
     public void onRepeatSettingClick(View v) {
-        boolean checked = ((RadioButton) v).isChecked();
+        // Increase the repeat state, or overflow it
+        repeatState = (repeatState == 2) ? 0 : (repeatState + 1);
 
-        switch (v.getId()) {
-            case R.id.radio_repeatNone:
-                musicPlayerService.setRepeatSettings(false, false);
-                break;
-            case R.id.radio_repeatAll:
-                musicPlayerService.setRepeatSettings(checked, !checked);
-                break;
-            case R.id.radio_repeatOne:
-                musicPlayerService.setRepeatSettings(!checked, checked);
-                break;
+        musicPlayerBinder.setRepeatSettings(
+                repeatState == 1, // All
+                repeatState == 2 // One
+        );
+
+        ImageButton repeatButton = (ImageButton) findViewById(R.id.repeatButton);
+        if (repeatState == 1) {
+            repeatButton.setImageResource(R.drawable.repeat_all_button);
+        } else if (repeatState == 2) {
+            repeatButton.setImageResource(R.drawable.repeat_one_button);
+        } else {
+            repeatButton.setImageResource(R.drawable.repeat_off_button);
         }
     }
 
     /**
-     * Updates the musicPlayerService shuffle setting
+     * Updates the musicPlayerBinder shuffle setting
      *
      * @param v What was clicked
      */
     public void onShuffleSettingClick(View v) {
-        boolean checked = ((CheckBox) v).isChecked();
-        musicPlayerService.setShuffleSetting(checked);
+        // Increase the shuffle state, or overflow it
+        shuffleState = (shuffleState == 1) ? 0 : 1;
+
+        musicPlayerBinder.setShuffleSetting(
+                (shuffleState == 1)
+        );
+
+        ImageButton shuffleButton = (ImageButton) findViewById(R.id.shuffleButton);
+        if (shuffleState == 1) {
+            shuffleButton.setImageResource(R.drawable.shuffle_on_button);
+        } else {
+            shuffleButton.setImageResource(R.drawable.shuffle_off_button);
+        }
     }
 
     /**
-     * What do do when another activity, that was launched from this activty,
+     * What do do when another activity, that was launched from this activity,
      * finishes. If this was from a cancel, do nothing. Otherwise, if there was
-     * no music, show an error. If there was music, load it into the musicPlayerService
+     * no music, show an error. If there was music, load it into the musicPlayerBinder
      * and begin playback.
      *
      * @param requestCode Which activity was launched
@@ -210,9 +266,9 @@ public class PlayerActivity extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         if (requestCode == MEDIA_CONTENT_REQUEST_CODE && resultCode == RESULT_OK) {
             // Enable the playback modifier buttons
-            (findViewById(R.id.playPauseButton)).setEnabled(true);
-            (findViewById(R.id.nextButton)).setEnabled(true);
-            (findViewById(R.id.prevButton)).setEnabled(true);
+            (findViewById(R.id.playPauseImageButton)).setEnabled(true);
+            (findViewById(R.id.nextImageButton)).setEnabled(true);
+            (findViewById(R.id.previousImageButton)).setEnabled(true);
 
             // Get songs from the bundle
             Bundle bundle = data.getExtras();
@@ -220,14 +276,14 @@ public class PlayerActivity extends AppCompatActivity {
             int start_from = bundle.getInt(MediaContentProvider.START_FROM);
 
             // Overwrite the current queue if there is one
-            if (musicPlayerService.hasQueue()) {
-                musicPlayerService.stopPlayback();
-                musicPlayerService.clearQueue();
+            if (musicPlayerBinder.hasQueue()) {
+                musicPlayerBinder.stopPlayback();
+                musicPlayerBinder.clearQueue();
             }
 
             // Load the new music in and start playing it
-            musicPlayerService.loadMusic(songs, start_from);
-            musicPlayerService.beginPlayback();
+            musicPlayerBinder.loadMusic(songs, start_from);
+            musicPlayerBinder.beginPlayback();
 
             updatePlayingUI();
         } else if (requestCode == MEDIA_CONTENT_REQUEST_CODE && resultCode == MediaContentProvider.NO_MUSIC) {
@@ -247,7 +303,6 @@ public class PlayerActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        Log.d("myapp", "PlayerActivity onDestroy");
 
         if (serviceConnection != null) {
             unbindService(serviceConnection);
@@ -260,26 +315,25 @@ public class PlayerActivity extends AppCompatActivity {
      */
     private ServiceConnection serviceConnection = new ServiceConnection() {
 
-        /** TODO
-         * What happens when the connection is created, will create a musicPlayerService
+        /**
+         * Called when a connection to the Service has been established, with the IBinder of the communication channel to the Service.
          *
-         * @param name
-         * @param service
+         * @param name    The concrete component name of the service that has been connected.
+         * @param service The IBinder of the Service's communication channel, which you can now make calls on.
          */
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            musicPlayerService = (MusicPlayerBinder) service;
+            musicPlayerBinder = (MusicPlayerBinder) service;
         }
 
         /**
-         * TODO
-         * What happens when the connection is complete, nullifies the musicPlayerService
+         * Called when a connection to the Service has been lost.
          *
-         * @param name
+         * @param name The concrete component name of the service whose connection has been lost.
          */
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            musicPlayerService = null;
+            musicPlayerBinder = null;
         }
     };
 }

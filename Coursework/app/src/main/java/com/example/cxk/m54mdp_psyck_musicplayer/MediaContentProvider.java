@@ -12,7 +12,6 @@ import android.provider.MediaStore;
 import android.database.Cursor;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.util.Log;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.ListView;
@@ -391,15 +390,14 @@ public class MediaContentProvider extends ListActivity {
         long ms;
         try {
             ms = Long.parseLong(timeInMs);
-        } catch(Exception e){
+        } catch (Exception e) {
             return timeInMs;
         }
 
-        String formatted = String.format("%02d:%02d",
+        return String.format("%02d:%02d",
                 TimeUnit.MILLISECONDS.toMinutes(ms),
                 TimeUnit.MILLISECONDS.toSeconds(ms) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(ms))
         );
-        return formatted;
     }
 
 }

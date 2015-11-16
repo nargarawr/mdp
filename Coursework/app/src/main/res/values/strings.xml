@@ -1,4 +1,7 @@
 <resources>
     <string name="app_name">m54mdp-psyck-musicplayer</string>
     <string name="listview_title">Your Music</string>
+    <string name="browse_button">Browse</string>
+    <string name="play_pause_button_desc">Play Pause Button</string>
+    <string name="currently_playing">Currently Playing</string>
 </resources>
