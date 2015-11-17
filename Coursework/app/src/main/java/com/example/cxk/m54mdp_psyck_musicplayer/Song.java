@@ -3,6 +3,8 @@ package com.example.cxk.m54mdp_psyck_musicplayer;
 import android.os.Parcel;
 import android.os.Parcelable;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * Song
  * <p/>
@@ -85,6 +87,24 @@ public class Song implements Parcelable {
      */
     int getDuration() {
         return Integer.valueOf(this.duration);
+    }
+
+    /**
+     * TODO
+     * @return
+     */
+    String getDurationAsString() {
+        long ms;
+        try {
+            ms = Long.parseLong(this.duration);
+        } catch (Exception e) {
+            return this.duration;
+        }
+
+        return String.format("%02d:%02d",
+                TimeUnit.MILLISECONDS.toMinutes(ms),
+                TimeUnit.MILLISECONDS.toSeconds(ms) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(ms))
+        );
     }
 
     /**

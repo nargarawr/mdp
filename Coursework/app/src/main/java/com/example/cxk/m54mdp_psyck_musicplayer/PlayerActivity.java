@@ -1,18 +1,20 @@
 package com.example.cxk.m54mdp_psyck_musicplayer;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.graphics.Point;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Display;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -44,6 +46,8 @@ public class PlayerActivity extends Activity {
 
     private final String SAVED_INSTANCE_BINDER = "SAVED_INSTANCE_BINDER";
 
+    private PlaybackBar playbackBar;
+
     /**
      * Called when the activity is starting.
      *
@@ -61,7 +65,6 @@ public class PlayerActivity extends Activity {
         }
 
         this.serviceConnection = new ServiceConnection() {
-
             /**
              * Called when a connection to the Service has been established, with the IBinder of the communication channel to the Service.
              *
@@ -99,6 +102,18 @@ public class PlayerActivity extends Activity {
                 updatePlayingUI();
             }
         };
+
+        // Create a new thread to manage updating the playback progress bar
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        playbackBar = new PlaybackBar(
+                size.x,
+                (TextView) findViewById(R.id.songCurrentPositionDisplay)
+        );
+
+        // If this is the first time the app has been launched, bring up the music selector straight away
+        onBrowseClick(null);
     }
 
     /**
@@ -139,15 +154,19 @@ public class PlayerActivity extends Activity {
      */
     public void updatePlayingUI() {
         ImageButton playButtonImgButton = (ImageButton) findViewById(R.id.playPauseImageButton);
+        Song playingSong = musicPlayerService.getPlayingSong();
 
         if (musicPlayerService.isPlaying()) {
             playButtonImgButton.setBackgroundResource(R.drawable.pause_default);
+
+            playbackBar.setMusicPlaying(playingSong);
+            ((TextView)findViewById(R.id.songDurationDisplay)).setText(playingSong.getDurationAsString());
         } else {
             playButtonImgButton.setBackgroundResource(R.drawable.play_default);
+            playbackBar.setMusicStopped();
         }
 
         // Update the UI to display information which Song is playing
-        Song playingSong = musicPlayerService.getPlayingSong();
         ((TextView) findViewById(R.id.currentlyPlayingSong)).setText(playingSong.getName());
         ((TextView) findViewById(R.id.currentlyPlayingArtist)).setText(playingSong.getArtist());
     }
