@@ -66,7 +66,7 @@ public class Song implements Parcelable {
      * @return The name of the album
      */
     public String getAlbum() {
-        return this.getAlbum();
+        return this.album;
     }
 
     /**

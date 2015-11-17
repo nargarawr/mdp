@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Environment;
 import android.provider.MediaStore;
 import android.database.Cursor;
 import android.support.v4.app.ActivityCompat;
@@ -121,6 +122,13 @@ public class MediaContentProvider extends ListActivity {
                     formatSongDuration(list);
                 }
             });
+        }
+
+        // If the SD Card is not connected, close the activity
+        String state = Environment.getExternalStorageState();
+        if (!(Environment.MEDIA_MOUNTED.equals(state) || Environment.MEDIA_MOUNTED_READ_ONLY.equals(state))) {
+            setResult(NO_MUSIC, null);
+            finish();
         }
 
         // As of Android 6.0, with a target SDK of 23 of higher, you have to specifically request

@@ -19,10 +19,6 @@ public class MusicPlayerBinder extends Binder {
         this.musicPlayerService = mps;
     }
 
-    public MusicPlayerService getService (){
-        return this.musicPlayerService;
-    }
-
     /**
      * Loads the given music into the music player playback queue
      *
@@ -53,7 +49,6 @@ public class MusicPlayerBinder extends Binder {
     public void stopPlayback() {
         musicPlayerService.stopPlayback();
     }
-
 
     /**
      * Returns whether or not the music player is currently playing
