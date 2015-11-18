@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+android:layout_width="match_parent"
+android:layout_height="match_parent">
+
+<RelativeLayout
+    android:id="@+id/relativeLayout2"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_alignParentStart="true"
+    android:layout_alignParentTop="true"
+    android:background="#CCFFFFFF"
+    android:paddingEnd="15sp"
+    android:paddingStart="15sp">
+
+
+    <TextView
+        android:id="@+id/currentlyPlayingSong"
+        android:layout_width="225sp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="5sp"
+        android:text=""
+        android:textColor="#000000"
+        android:singleLine="true"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit ="marquee_forever"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:scrollHorizontally="true"
+        android:textSize="20sp" />
+
+    <TextView
+        android:id="@+id/currentlyPlayingArtist"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_below="@+id/currentlyPlayingSong"
+        android:layout_marginBottom="5sp"
+        android:text=""
+        android:textAppearance="?android:attr/textAppearanceMedium"
+        android:textColor="#AAAAAA"
+        android:textSize="15sp" />
+
+    <Button
+        android:id="@+id/browseButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:drawableLeft="@drawable/browse_padding_right"
+        android:gravity="center_vertical|center_horizontal|fill_vertical"
+        android:onClick="onBrowseClick"
+        android:text="@string/browse_music"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true" />
+
+    <ImageButton
+        android:id="@+id/browsePlaylistIcon"
+        android:layout_width="40sp"
+        android:layout_height="40sp"
+        android:layout_alignBottom="@+id/currentlyPlayingArtist"
+        android:layout_marginEnd="10sp"
+        android:layout_toStartOf="@+id/browseButtonIcon"
+        android:background="@drawable/playlist_default"
+        android:onClick="onBrowseClick"
+        android:visibility="gone"/>
+
+    <ImageButton
+        android:id="@+id/browseButtonIcon"
+        android:layout_width="40sp"
+        android:layout_height="40sp"
+        android:layout_alignParentEnd="true"
+        android:layout_centerVertical="true"
+        android:background="@drawable/browse_default"
+        android:onClick="onBrowseClick"
+        android:visibility="gone"/>
+
+</RelativeLayout>
+
+<RelativeLayout
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:layout_below="@+id/relativeLayout2"
+    android:layout_centerHorizontal="true"
+    android:background="@drawable/red">
+
+    <RelativeLayout
+        android:id="@+id/relativeLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
+        android:background="#CCFFFFFF">
+
+        <TextView
+            android:id="@+id/songCurrentPositionDisplay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentStart="true"
+            android:paddingStart="5sp"
+            android:text="00:00"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+
+        <ImageButton
+            android:id="@+id/previousImageButton"
+            android:layout_width="40sp"
+            android:layout_height="40sp"
+            android:layout_alignParentTop="true"
+            android:layout_marginTop="13sp"
+            android:layout_toStartOf="@+id/playPauseImageButton"
+            android:background="@drawable/previous_button"
+            android:contentDescription="@string/play_prev_song_desc"
+            android:onClick="onPreviousClick"
+            android:scaleType="fitXY" />
+
+        <ImageButton
+            android:id="@+id/playPauseImageButton"
+            android:layout_width="50sp"
+            android:layout_height="50sp"
+            android:layout_centerHorizontal="true"
+            android:layout_centerVertical="true"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginLeft="15sp"
+            android:layout_marginRight="15sp"
+            android:layout_marginTop="15sp"
+            android:background="@drawable/play_button"
+            android:contentDescription="@string/play_pause_button_desc"
+            android:onClick="onPlayPauseClick"
+            android:scaleType="fitXY" />
+
+        <ImageButton
+            android:id="@+id/nextImageButton"
+            android:layout_width="40sp"
+            android:layout_height="40sp"
+            android:layout_alignParentTop="true"
+            android:layout_marginTop="13sp"
+            android:layout_toEndOf="@+id/playPauseImageButton"
+            android:background="@drawable/next_button"
+            android:contentDescription="@string/play_next_song_desc"
+            android:onClick="onNextClick"
+            android:scaleType="fitXY" />
+
+        <TextView
+            android:id="@+id/songDurationDisplay"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentEnd="true"
+            android:paddingEnd="5sp"
+            android:layout_alignTop="@+id/songCurrentPositionDisplay"
+            android:text="99:99"
+            android:textAppearance="?android:attr/textAppearanceSmall" />
+    </RelativeLayout>
+
+    <ImageButton
+        android:id="@+id/shuffleButton"
+        android:layout_width="50sp"
+        android:layout_height="50sp"
+        android:layout_above="@+id/relativeLayout"
+        android:layout_alignParentEnd="true"
+        android:layout_marginBottom="15sp"
+        android:layout_marginEnd="10sp"
+        android:background="@drawable/shuffle_off_button"
+        android:onClick="onShuffleSettingClick"
+        android:scaleType="fitXY" />
+
+    <ImageButton
+        android:id="@+id/repeatButton"
+        android:layout_width="50sp"
+        android:layout_height="50sp"
+        android:layout_above="@+id/relativeLayout"
+        android:layout_alignParentStart="true"
+        android:layout_marginBottom="15sp"
+        android:layout_marginStart="10sp"
+        android:background="@drawable/repeat_off_button"
+        android:onClick="onRepeatSettingClick"
+        android:scaleType="fitXY" />
+
+    <ProgressBar
+        style="?android:attr/progressBarStyleHorizontal"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/progressBar"
+        android:layout_above="@+id/relativeLayout"
+        android:layout_marginTop="-6dp"
+        android:layout_marginBottom="-8dp"
+        android:max="1000"
+        android:progress="0"
+        android:visibility="visible"
+        android:layout_alignParentEnd="true"
+        android:layout_alignParentStart="true" />
+
+
+</RelativeLayout>
+
+
+</RelativeLayout>
