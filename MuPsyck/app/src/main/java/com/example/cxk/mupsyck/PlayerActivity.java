@@ -1,6 +1,10 @@
 package com.example.cxk.mupsyck;
 
 import android.app.Activity;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.TaskStackBuilder;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -8,6 +12,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
@@ -15,6 +20,8 @@ import android.graphics.drawable.BitmapDrawable;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.os.Bundle;
+import android.support.v4.app.NotificationCompat;
+import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
@@ -39,6 +46,8 @@ public class PlayerActivity extends Activity {
     static final int MEDIA_CONTENT_REQUEST_CODE = 1;
     static final int MEDIA_SHOWLIST_REQUEST_CODE = 2;
 
+    static final int NOTIFICATION_ID = 100;
+
     private MusicPlayerBinder musicPlayerBinder = null;
     private BroadcastReceiver receiver;
     private ServiceConnection serviceConnection;
@@ -58,6 +67,25 @@ public class PlayerActivity extends Activity {
     SharedPreferences sharedPref;
 
     /**
+     * TODO
+     * and move
+     *
+     * @param path
+     */
+    public void showAlbumArtwork(String path) {
+        albumArtworkPath = path;
+        Bitmap bmImg = BitmapFactory.decodeFile(albumArtworkPath);
+        if (bmImg == null) {
+            findViewById(R.id.noAlbumArtFound).setVisibility(View.VISIBLE);
+        } else {
+            BitmapDrawable background = new BitmapDrawable(bmImg);
+            findViewById(R.id.backgroundImg).setBackgroundDrawable(background);
+            findViewById(R.id.noAlbumArtFound).setVisibility(View.GONE);
+        }
+        findViewById(R.id.noSongSelected).setVisibility(View.GONE);
+    }
+
+    /**
      * Called when the activity is starting.
      *
      * @param savedInstanceState If the activity is being re-initialized after
@@ -66,6 +94,8 @@ public class PlayerActivity extends Activity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+        Log.d("cxk-db", "value of bundle... " + (savedInstanceState == null));
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
 
@@ -79,10 +109,7 @@ public class PlayerActivity extends Activity {
             musicPlayerBinder = (MusicPlayerBinder) savedInstanceState.getBinder(SAVED_INSTANCE_BINDER);
 
             // Displays the album artwork
-            albumArtworkPath = savedInstanceState.getString(MediaContentProvider.ALBUM_ART_PATH);
-            Bitmap bmImg = BitmapFactory.decodeFile(albumArtworkPath);
-            BitmapDrawable background = new BitmapDrawable(bmImg);
-            findViewById(R.id.backgroundImg).setBackgroundDrawable(background);
+            showAlbumArtwork(savedInstanceState.getString(MediaContentProvider.ALBUM_ART_PATH));
         }
 
         // Creates a service connection
@@ -180,6 +207,63 @@ public class PlayerActivity extends Activity {
     }
 
     /**
+     * Displays a notification to the user that music is playing. When the user swipes down to see this
+     * notification it will display the name/artist of the playing song, and the artwork, if possible.
+     */
+    public void displayNotification() {
+        Song s = musicPlayerBinder.getPlayingSong();
+
+        // Create the noficiation builder
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+
+        // Add the topbar icon
+        int topBarIcon = musicPlayerBinder.isPlaying() ? R.drawable.notification_playing_icon : R.drawable.notification_paused_icon;
+        builder.setSmallIcon(topBarIcon);
+
+        // If the album has artwork, display this as the big icon, otherwise display the topbar icon again
+        Bitmap bmImg = BitmapFactory.decodeFile(albumArtworkPath);
+        if (bmImg == null) {
+            builder.setLargeIcon(BitmapFactory.decodeResource(getResources(), topBarIcon));
+        } else {
+            // Scale the image to fit the notification square perfectly
+            Resources res = this.getResources();
+            builder.setLargeIcon(Bitmap.createScaledBitmap(
+                    bmImg,
+                    (int) res.getDimension(android.R.dimen.notification_large_icon_width),
+                    (int) res.getDimension(android.R.dimen.notification_large_icon_height),
+                    false
+            ));
+        }
+
+        builder.setContentTitle(s.getArtist());
+        builder.setContentText(s.getName());
+
+        // Make the notification unclosable
+        builder.setOngoing(true);
+
+        // Set notification priority
+        builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+        // Create intent to open when we click on the notification
+        Intent intent = new Intent(this, PlayerActivity.class);
+        Bundle bundle = new Bundle();
+        bundle.putBoolean("fuck", true);
+        intent.putExtras(bundle);
+
+        // Creates a "back stack" for the started activity which ensures that pressing the back button
+        // after launcing our activity will go to the home screen
+        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+        stackBuilder.addParentStack(PlayerActivity.class);
+        stackBuilder.addNextIntent(intent);
+        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
+        builder.setContentIntent(resultPendingIntent);
+
+        // Display the notification
+        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        notificationManager.notify(NOTIFICATION_ID, builder.build());
+    }
+
+    /**
      * Called after {@link #onRestoreInstanceState}, {@link #onRestart}, or
      * {@link #onPause}, for your activity to start interacting with the user.
      */
@@ -238,12 +322,15 @@ public class PlayerActivity extends Activity {
             ((ProgressBar) findViewById(R.id.progressBar)).setProgress(0);
         }
         ((TextView) findViewById(R.id.songDurationDisplay)).setText(playingSong.getDurationAsString());
+
+        // Update the notification bar
+        displayNotification();
     }
 
     /**
      * Updates the playback bar and the text view representing the current position in the song
      *
-     * @param currentTime The current time of the song as an MM:SS string
+     * @param currentTime     The current time of the song as an MM:SS string
      * @param percentComplete How complete the song is, for the playback bar
      */
     public void updatePlaybackPosition(String currentTime, int percentComplete) {
@@ -462,10 +549,7 @@ public class PlayerActivity extends Activity {
             String albumArtPath = bundle.getString(MediaContentProvider.ALBUM_ART_PATH);
 
             // Displays the album artwork
-            albumArtworkPath = albumArtPath;
-            Bitmap bmImg = BitmapFactory.decodeFile(albumArtPath);
-            BitmapDrawable background = new BitmapDrawable(bmImg);
-            findViewById(R.id.backgroundImg).setBackgroundDrawable(background);
+            showAlbumArtwork(albumArtPath);
 
             // Overwrite the current queue if there is one
             if (musicPlayerBinder.hasQueue()) {
@@ -482,6 +566,7 @@ public class PlayerActivity extends Activity {
             findViewById(R.id.browseButtonIcon).setVisibility(View.VISIBLE);
             findViewById(R.id.browsePlaylistIcon).setVisibility(View.VISIBLE);
 
+            displayNotification();
             updatePlayingUI(true);
         } else if (requestCode == MEDIA_CONTENT_REQUEST_CODE && resultCode == MediaContentProvider.NO_MUSIC) {
             // Couldn't find any music, show an error

@@ -187,6 +187,25 @@ android:layout_height="match_parent">
         android:layout_alignParentEnd="true"
         android:layout_alignParentStart="true" />
 
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="No album artwork found"
+        android:id="@+id/noAlbumArtFound"
+        android:layout_alignParentTop="true"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="68dp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceLarge"
+        android:text="or no song selected"
+        android:id="@+id/noSongSelected"
+        android:layout_below="@+id/noAlbumArtFound"
+        android:layout_centerHorizontal="true" />
+
 
 </RelativeLayout>
 
