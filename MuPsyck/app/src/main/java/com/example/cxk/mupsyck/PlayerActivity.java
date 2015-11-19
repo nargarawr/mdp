@@ -17,6 +17,7 @@ import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
+import android.os.Build;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.os.Bundle;
@@ -217,7 +218,18 @@ public class PlayerActivity extends Activity {
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
 
         // Add the topbar icon
-        int topBarIcon = musicPlayerBinder.isPlaying() ? R.drawable.notification_playing_icon : R.drawable.notification_paused_icon;
+        int topBarIcon;
+
+        // If we're on lollipop, use the white icon
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            topBarIcon = musicPlayerBinder.isPlaying()
+                    ? R.drawable.notification_playing_icon_white
+                    : R.drawable.notification_paused_icon_white;
+        } else {
+            topBarIcon = musicPlayerBinder.isPlaying()
+                    ? R.drawable.notification_playing_icon
+                    : R.drawable.notification_paused_icon;
+        }
         builder.setSmallIcon(topBarIcon);
 
         // If the album has artwork, display this as the big icon, otherwise display the topbar icon again
