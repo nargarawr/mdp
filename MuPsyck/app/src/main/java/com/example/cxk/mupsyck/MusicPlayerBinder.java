@@ -117,4 +117,20 @@ public class MusicPlayerBinder extends Binder {
     public void setShuffleSetting(boolean shuffle) {
         musicPlayerService.setShuffleSetting(shuffle);
     }
+
+    /**
+     * Seek to the a particular position in the playback bar, as a percentage of the total width
+     *
+     * @param percent The percent to seek to
+     */
+    public void seekToPosition(int percent){
+        musicPlayerService.seekToPosition(percent);
+    }
+
+    /**
+     * TODO
+     */
+    public MusicPlayerService getService() {
+        return this.musicPlayerService;
+    }
 }

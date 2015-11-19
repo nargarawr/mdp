@@ -28,6 +28,8 @@
         android:text="Song Name"
         android:id="@+id/main_display"
         android:layout_alignParentTop="true"
+
+        android:layout_alignParentEnd="true"
         android:layout_toEndOf="@+id/song_number" />
 
     <TextView
@@ -42,5 +44,4 @@
         android:id="@+id/song_duration"
         android:layout_below="@+id/main_display"
         android:layout_toEndOf="@+id/song_number" />
-
 </RelativeLayout>

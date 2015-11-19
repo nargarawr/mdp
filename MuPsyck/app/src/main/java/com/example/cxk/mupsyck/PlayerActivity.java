@@ -1,13 +1,5 @@
 package com.example.cxk.mupsyck;
 
-
-
-/*
-when the phone rotates, the activity is destroyed
-i pass in the binder from the old activity, and create a new service connection using that binder
-however this doesn't connect to the same service, and therefore the musicPlayer is null and I cannot interact
- */
-
 import android.app.Activity;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -15,12 +7,16 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.SharedPreferences;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Point;
+import android.graphics.drawable.BitmapDrawable;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Display;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.ImageButton;
 import android.widget.ProgressBar;
@@ -43,18 +39,23 @@ public class PlayerActivity extends Activity {
     static final int MEDIA_CONTENT_REQUEST_CODE = 1;
     static final int MEDIA_SHOWLIST_REQUEST_CODE = 2;
 
-    private MusicPlayerBinder musicPlayerService = null;
+    private MusicPlayerBinder musicPlayerBinder = null;
     private BroadcastReceiver receiver;
-
     private ServiceConnection serviceConnection;
+    private Intent musicServiceIntent;
 
     // Private variables that record the state of the shuffle and repeat buttons
-    private int shuffleState = 0;
-    private int repeatState = 0;
+    private int shuffleState;
+    private int repeatState;
+
+    private String albumArtworkPath = "";
+    private int phoneWidth;
 
     private final String SAVED_INSTANCE_BINDER = "SAVED_INSTANCE_BINDER";
 
     private PlaybackBarManager playbackBar;
+
+    SharedPreferences sharedPref;
 
     /**
      * Called when the activity is starting.
@@ -68,10 +69,23 @@ public class PlayerActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
 
+        // Get width of phone screen
+        Display display = getWindowManager().getDefaultDisplay();
+        Point size = new Point();
+        display.getSize(size);
+        phoneWidth = size.x;
+
         if (savedInstanceState != null) {
-            musicPlayerService = (MusicPlayerBinder) savedInstanceState.getBinder(SAVED_INSTANCE_BINDER);
+            musicPlayerBinder = (MusicPlayerBinder) savedInstanceState.getBinder(SAVED_INSTANCE_BINDER);
+
+            // Displays the album artwork
+            albumArtworkPath = savedInstanceState.getString(MediaContentProvider.ALBUM_ART_PATH);
+            Bitmap bmImg = BitmapFactory.decodeFile(albumArtworkPath);
+            BitmapDrawable background = new BitmapDrawable(bmImg);
+            findViewById(R.id.backgroundImg).setBackgroundDrawable(background);
         }
 
+        // Creates a service connection
         this.serviceConnection = new ServiceConnection() {
             /**
              * Called when a connection to the Service has been established, with the IBinder of the communication channel to the Service.
@@ -81,7 +95,13 @@ public class PlayerActivity extends Activity {
              */
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
-                musicPlayerService = (MusicPlayerBinder) service;
+                if (musicPlayerBinder == null) {
+                    musicPlayerBinder = (MusicPlayerBinder) service;
+                }
+
+                // Check for any shared preferences
+                sharedPref = getPreferences(Context.MODE_PRIVATE);
+                lookForSharedPreferences();
             }
 
             /**
@@ -91,26 +111,41 @@ public class PlayerActivity extends Activity {
              */
             @Override
             public void onServiceDisconnected(ComponentName name) {
-                musicPlayerService = null;
+                musicPlayerBinder = null;
             }
         };
 
-        // Sets up the binder for the service
+        // Binds to the service
+        musicServiceIntent = new Intent(this, MusicPlayerService.class);
         this.bindService(
-                new Intent(this, MusicPlayerService.class),
+                musicServiceIntent,
                 serviceConnection,
                 Context.BIND_AUTO_CREATE
         );
 
         // Creates the playback bar object to manage updating the playback progress bar
-        Display display = getWindowManager().getDefaultDisplay();
-        Point size = new Point();
-        display.getSize(size);
         playbackBar = new PlaybackBarManager(
                 getApplicationContext(),
                 (TextView) findViewById(R.id.songCurrentPositionDisplay),
                 (TextView) findViewById(R.id.songDurationDisplay)
         );
+
+        // Add an on click listener to the progress bar so we can seek
+        findViewById(R.id.progressBar).setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                if (event.getAction() == MotionEvent.ACTION_DOWN && musicPlayerBinder != null) {
+                    int percentComplete = (int) (100 * event.getX() / phoneWidth);
+
+                    // Seek in the music player
+                    musicPlayerBinder.seekToPosition(percentComplete);
+
+                    // Update the interface
+                    playbackBar.seekToPosition(percentComplete);
+                }
+                return true;
+            }
+        });
 
         // Sets up the broadcast receiver
         receiver = new BroadcastReceiver() {
@@ -129,9 +164,18 @@ public class PlayerActivity extends Activity {
             }
         };
 
+        // Set initial values of shuffle and repeat states
+        shuffleState = 0;
+        repeatState = 0;
+
         // If this is the first time the app has been launched, bring up the music selector straight away
+        // Otherwise, we will load music, so we don't need to display the browse button
         if (savedInstanceState == null) {
             onBrowseClick(null);
+        } else {
+            findViewById(R.id.browseButton).setVisibility(View.GONE);
+            findViewById(R.id.browseButtonIcon).setVisibility(View.VISIBLE);
+            findViewById(R.id.browsePlaylistIcon).setVisibility(View.VISIBLE);
         }
     }
 
@@ -145,7 +189,7 @@ public class PlayerActivity extends Activity {
 
         // If this isn't the first launch, update the UI to reflect any changes that may have happened
         // whilst the activity was not on the top of the stack
-        if (musicPlayerService != null && musicPlayerService.hasQueue()) {
+        if (musicPlayerBinder != null && musicPlayerBinder.hasQueue()) {
             updatePlayingUI(true);
         }
     }
@@ -160,13 +204,10 @@ public class PlayerActivity extends Activity {
      */
     @Override
     public void onSaveInstanceState(Bundle savedInstanceState) {
-        Log.d("Binder", "Saving instance state");
-        if (musicPlayerService != null && musicPlayerService.hasQueue()) {
-            Log.d("Binder", "current queue = " + musicPlayerService.getPlayingSong().getFilepath());
-        }
-
         super.onSaveInstanceState(savedInstanceState);
-        savedInstanceState.putBinder(SAVED_INSTANCE_BINDER, this.musicPlayerService);
+        savedInstanceState.putBinder(SAVED_INSTANCE_BINDER, this.musicPlayerBinder);
+        savedInstanceState.putString(MediaContentProvider.ALBUM_ART_PATH, albumArtworkPath);
+
     }
 
     /**
@@ -179,11 +220,11 @@ public class PlayerActivity extends Activity {
      */
     public void updatePlayingUI(boolean resetTimer) {
         ImageButton playButtonImgButton = (ImageButton) findViewById(R.id.playPauseImageButton);
-        Song playingSong = musicPlayerService.getPlayingSong();
+        Song playingSong = musicPlayerBinder.getPlayingSong();
 
-        if (musicPlayerService.isPlaying()) {
+        if (musicPlayerBinder.isPlaying()) {
             playButtonImgButton.setBackgroundResource(R.drawable.pause_default);
-            playbackBar.setMusicPlaying(playingSong);
+            playbackBar.setMusicPlaying();
         } else {
             playButtonImgButton.setBackgroundResource(R.drawable.play_default);
             playbackBar.setMusicStopped();
@@ -239,17 +280,14 @@ public class PlayerActivity extends Activity {
      */
     public void onPlayPauseClick(View v) {
         // If there is no music queued yet, do nothing
-        if (!(musicPlayerService.hasQueue())) {
-            Log.d("Binder", "queue empty");
+        if (!(musicPlayerBinder.hasQueue())) {
             return;
         }
-        Log.d("Binder", "current queue = " + musicPlayerService.getPlayingSong().getFilepath());
-        Log.d("Binder", musicPlayerService.getPlayingSong() + "");
 
-        if (musicPlayerService.isPlaying()) {
-            musicPlayerService.pausePlayback();
+        if (musicPlayerBinder.isPlaying()) {
+            musicPlayerBinder.pausePlayback();
         } else {
-            musicPlayerService.beginPlayback();
+            musicPlayerBinder.beginPlayback();
         }
         updatePlayingUI(false);
     }
@@ -275,18 +313,19 @@ public class PlayerActivity extends Activity {
      *
      * @param v
      */
-    public void onShowlistClick(View v) {
+    public void onPlaylistClick(View v) {
         // If there is no music, do nothing
-        if (!(musicPlayerService.hasQueue())) {
+        if (!(musicPlayerBinder.hasQueue())) {
             return;
         }
 
-        Song currentSong = musicPlayerService.getPlayingSong();
+        Song currentSong = musicPlayerBinder.getPlayingSong();
 
         Bundle bundle = new Bundle();
         bundle.putString(MediaContentProvider.TYPE, MediaContentProvider.SONG);
         bundle.putString(MediaContentProvider.ARTIST, currentSong.getArtist());
         bundle.putString(MediaContentProvider.ALBUM, currentSong.getAlbum());
+        bundle.putBoolean(MediaContentProvider.DISPLAY_PLAYLIST, true);
 
         Intent intent = new Intent(PlayerActivity.this, MediaContentProvider.class);
         intent.putExtras(bundle);
@@ -302,8 +341,8 @@ public class PlayerActivity extends Activity {
      */
     public void onNextClick(View v) {
         // If there is no music queued yet, do nothing
-        if (musicPlayerService.hasQueue()) {
-            musicPlayerService.playNext();
+        if (musicPlayerBinder.hasQueue()) {
+            musicPlayerBinder.playNext();
         }
     }
 
@@ -315,21 +354,37 @@ public class PlayerActivity extends Activity {
      */
     public void onPreviousClick(View v) {
         // If there is no music queued yet, do nothing
-        if (musicPlayerService.hasQueue()) {
-            musicPlayerService.playPrevious();
+        if (musicPlayerBinder.hasQueue()) {
+            musicPlayerBinder.playPrevious();
         }
     }
 
     /**
-     * Updates the musicPlayerService repeating settings
+     * Updates the musicPlayerBinder repeating settings and saves them as a shared preference
      *
      * @param v What was clicked
      */
     public void onRepeatSettingClick(View v) {
+        updateRepeatSetting();
+
+        // Save this as a shared preference
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putInt(getString(R.string.preference_repeat), repeatState);
+        editor.apply();
+    }
+
+    /**
+     * TODO
+     */
+    public void updateRepeatSetting() {
+        if (musicPlayerBinder == null) {
+            return;
+        }
+
         // Increase the repeat state, or overflow it
         repeatState = (repeatState == 2) ? 0 : (repeatState + 1);
 
-        musicPlayerService.setRepeatSettings(
+        musicPlayerBinder.setRepeatSettings(
                 repeatState == 1, // All
                 repeatState == 2 // One
         );
@@ -342,18 +397,35 @@ public class PlayerActivity extends Activity {
         } else {
             repeatButton.setBackgroundResource(R.drawable.repeat_off);
         }
+
     }
 
     /**
-     * Updates the musicPlayerService shuffle setting
+     * Updates the musicPlayerBinder shuffle setting and saves them as a shared preference
      *
      * @param v What was clicked
      */
     public void onShuffleSettingClick(View v) {
+        updateShuffleSetting();
+
+        // Save this as a shared preference
+        SharedPreferences.Editor editor = sharedPref.edit();
+        editor.putInt(getString(R.string.preference_shuffle), shuffleState);
+        editor.apply();
+    }
+
+    /**
+     * TODO
+     */
+    public void updateShuffleSetting() {
+        if (musicPlayerBinder == null) {
+            return;
+        }
+
         // Increase the shuffle state, or overflow it
         shuffleState = (shuffleState == 1) ? 0 : 1;
 
-        musicPlayerService.setShuffleSetting(
+        musicPlayerBinder.setShuffleSetting(
                 (shuffleState == 1)
         );
 
@@ -368,7 +440,7 @@ public class PlayerActivity extends Activity {
     /**
      * What do do when another activity, that was launched from this activity,
      * finishes. If this was from a cancel, do nothing. Otherwise, if there was
-     * no music, show an error. If there was music, load it into the musicPlayerService
+     * no music, show an error. If there was music, load it into the musicPlayerBinder
      * and begin playback.
      *
      * @param requestCode Which activity was launched
@@ -382,16 +454,23 @@ public class PlayerActivity extends Activity {
             Bundle bundle = data.getExtras();
             ArrayList<Song> songs = bundle.getParcelableArrayList(MediaContentProvider.SONG_ARRAY);
             int start_from = bundle.getInt(MediaContentProvider.START_FROM);
+            String albumArtPath = bundle.getString(MediaContentProvider.ALBUM_ART_PATH);
+
+            // Displays the album artwork
+            albumArtworkPath = albumArtPath;
+            Bitmap bmImg = BitmapFactory.decodeFile(albumArtPath);
+            BitmapDrawable background = new BitmapDrawable(bmImg);
+            findViewById(R.id.backgroundImg).setBackgroundDrawable(background);
 
             // Overwrite the current queue if there is one
-            if (musicPlayerService.hasQueue()) {
-                musicPlayerService.stopPlayback();
-                musicPlayerService.clearQueue();
+            if (musicPlayerBinder.hasQueue()) {
+                musicPlayerBinder.stopPlayback();
+                musicPlayerBinder.clearQueue();
             }
 
             // Load the new music in and start playing it
-            musicPlayerService.loadMusic(songs, start_from);
-            musicPlayerService.beginPlayback();
+            musicPlayerBinder.loadMusic(songs, start_from);
+            musicPlayerBinder.beginPlayback();
 
             // Change the top bar to display song name, and change the browse music button to be an icon
             findViewById(R.id.browseButton).setVisibility(View.GONE);
@@ -416,12 +495,27 @@ public class PlayerActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-
-        if (serviceConnection != null) {
+        /*
+        if (!(musicPlayerBinder.isPlaying())) {
             unbindService(serviceConnection);
-            serviceConnection = null;
+            stopService(musicServiceIntent);
         }
+        */
     }
 
+    /**
+     *TODO
+     */
+    public void lookForSharedPreferences() {
+        // Get shuffle setting and invert it, because then our function can set it correctly
+        shuffleState = sharedPref.getInt(getString(R.string.preference_shuffle), 0);
+        shuffleState = (shuffleState == 1) ? 0 : 1;
+        updateShuffleSetting();
 
+        // Get repeat setting
+        repeatState = sharedPref.getInt(getString(R.string.preference_repeat), 0);
+        repeatState = (repeatState == 0) ? 2 : (repeatState - 1);
+        updateRepeatSetting();
+
+    }
 }

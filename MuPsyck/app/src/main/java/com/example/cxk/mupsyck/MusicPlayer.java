@@ -64,7 +64,6 @@ public class MusicPlayer extends Thread  {
      * Sends a broadcast to the PlayerActivity so the UI can be updated
      */
     public void sendBroadcast() {
-        Log.d("myapp-b", "sending broadcast from onCreate of MusicPlayer");
         Intent intent = new Intent(MUSIC_PLAYER_BROADCAST);
         broadcaster.sendBroadcast(intent);
     }
@@ -81,7 +80,7 @@ public class MusicPlayer extends Thread  {
     }
 
     /**
-     * Begins playback of the media player. If there is no datasource, it will set one up and play,
+     * Begins playback of the media player. If there is no data source, it will set one up and play,
      * otherwise it will just start playing from the song at the current index of the playback queue
      */
     public void beginPlayback() {
@@ -101,10 +100,8 @@ public class MusicPlayer extends Thread  {
             this.mediaPlayer.prepare();
             this.mediaPlayer.start();
         } catch (IOException e) {
-            Log.d("myapp", "MusicPlayer Could not load the file");
             e.printStackTrace();
         } catch (Exception e) {
-            Log.d("myapp", "There was a exception");
             e.printStackTrace();
         }
     }
@@ -197,7 +194,6 @@ public class MusicPlayer extends Thread  {
      * @param loopingOne Whether we are looping a single song
      */
     public void setRepeatSettings(boolean loopingAll, boolean loopingOne) {
-        Log.d("myapp", "Repeat settings: one - " + loopingAll + ", one - " + loopingOne);
         this.loopingAll = loopingAll;
         this.loopingOne = loopingOne;
     }
@@ -209,6 +205,16 @@ public class MusicPlayer extends Thread  {
      */
     public void setShuffleSetting(boolean shuffle) {
         this.shuffle = shuffle;
+    }
+
+    /**
+     * Seek to the a particular position in the playback bar, as a percentage of the total width
+     *
+     * @param percent The percent to seek to
+     */
+    public void seekToPosition(int percent){
+        int duration = playbackQueue.getSong().getDuration();
+        mediaPlayer.seekTo(duration * percent/100);
     }
 
 }

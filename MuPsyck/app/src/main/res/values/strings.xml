@@ -7,4 +7,7 @@
     <string name="play_prev_song_desc">Play Previous Song</string>
     <string name="play_next_song_desc">Play Next Song</string>
     <string name="browse_music">Browse Music</string>
+    <string name="currently_playing_string">Currently Playing</string>
+    <string name="preference_shuffle">preference_shuffle</string>
+    <string name="preference_repeat">preference_repeat</string>
 </resources>

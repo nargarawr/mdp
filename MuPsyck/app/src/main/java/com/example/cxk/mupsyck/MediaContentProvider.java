@@ -14,6 +14,7 @@ import android.provider.MediaStore;
 import android.database.Cursor;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.ListView;
@@ -42,12 +43,15 @@ public class MediaContentProvider extends ListActivity {
     static final int ALBUM_REQUEST_CODE = 1;
     static final int SONG_REQUEST_CODE = 2;
 
-    // Reuqest code for when we ask for thh READ_EXTERNAL_STORAGE
+    // Request code for when we ask for the READ_EXTERNAL_STORAGE permission
     static final int PERMISSION_REQUEST_CODE = 3;
 
-    // Used for passing the Intent out of the class back to MainActivty
+    final static String DISPLAY_PLAYLIST = "DISPLAY_PLAYLIST";
+
+    // Used for passing the Intent out of the class back to MainActivity
     final static String SONG_ARRAY = "SONG_ARRAY";
     final static String START_FROM = "START_FROM";
+    final static String ALBUM_ART_PATH = "ALBUM_ART_PATH";
 
     // Used to tell the PlayerActivity that there is no music on the phone
     final static int NO_MUSIC = 10;
@@ -59,6 +63,8 @@ public class MediaContentProvider extends ListActivity {
     final static String ARTIST = MediaStore.Audio.Media.ARTIST;
     final static String DURATION = MediaStore.Audio.Media.DURATION;
     final static String ALBUM = MediaStore.Audio.Media.ALBUM;
+    final static String ARTWORK = MediaStore.Audio.Albums.ALBUM_ART;
+    final static String ALBUM_ID = MediaStore.Audio.Media.ALBUM_ID;
     final static String FILEPATH = MediaStore.Audio.Media.DATA;
     Uri content_uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 
@@ -74,7 +80,7 @@ public class MediaContentProvider extends ListActivity {
     /**
      * Called when the content provider is created and determines which type of results it should
      * display. If we're loading artists, make sure we have permission to, and if we're loading
-     * songs, add listeners to the listview so we can convert the duration of the songs to a nicer format
+     * songs, add listeners to the list view so we can convert the duration of the songs to a nicer format
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -92,7 +98,7 @@ public class MediaContentProvider extends ListActivity {
         } else if (media_type.equals(SONG)) {
             listTitle.setText(album_filter);
 
-            // When we create the listview, we call the formatSongDuration function, which will
+            // When we create the list view, we call the formatSongDuration function, which will
             // loop through each element and update the duration to an MM:SS format, instead of
             // just being in milliseconds. We also do this whenever we scroll
             final ListView list = (ListView) findViewById(android.R.id.list);
@@ -263,22 +269,19 @@ public class MediaContentProvider extends ListActivity {
         TextView textView = (TextView) v.findViewById(R.id.main_display);
         String selectedValue = textView.getText().toString();
 
-        // If we're clicking on a song name, we should get the song name and send this back
-        Bundle bundle = new Bundle();
+        // If we're clicking on a song name, we should get the song and send this back
         if (media_type.equals(SONG)) {
-            bundle.putString(ALBUM, album_filter);
-            bundle.putString(ARTIST, artist_filter);
-            bundle.putString(SONG, selectedValue);
-
-            Intent result = new Intent();
-            result.putExtras(bundle);
-            setResult(Activity.RESULT_OK, result);
-            finish();
+            getAllSongsForAlbumAndReturn(
+                    artist_filter,
+                    album_filter,
+                    selectedValue
+            );
             return;
         }
 
         // If we selected an album or artist, we spawn another MediaContentProvider to search one level deeper
         Intent intent = new Intent(MediaContentProvider.this, MediaContentProvider.class);
+        Bundle bundle = new Bundle();
         int requestCode;
         if (media_type.equals(ARTIST)) {
             bundle.putString(TYPE, ALBUM);
@@ -307,18 +310,35 @@ public class MediaContentProvider extends ListActivity {
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == ALBUM_REQUEST_CODE && resultCode == RESULT_OK) {
-            Bundle b = data.getExtras();
-
-            getAllSongsForAlbumAndReturn(
-                    b.getString(ARTIST),
-                    b.getString(ALBUM),
-                    b.getString(SONG)
-            );
-        } else if (requestCode == SONG_REQUEST_CODE && resultCode == RESULT_OK) {
+        if ((requestCode == ALBUM_REQUEST_CODE || requestCode == SONG_REQUEST_CODE) && resultCode == RESULT_OK) {
             setResult(Activity.RESULT_OK, data);
             finish();
         }
+    }
+
+    /**
+     * Get album artwork for an album
+     *
+     * @param albumId An album id for the album to get the artwork for
+     *
+     * @return The path to the album artwork for the provided album
+     */
+    private String getAlbumArtwork(String albumId) {
+        String colsToSelect[] = {MediaStore.Audio.Albums._ID, ARTWORK};
+        String whereClause = MediaStore.Audio.Albums._ID + " = " + albumId;
+
+        ContentResolver cr = getContentResolver();
+        Cursor cursor = cr.query(MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI, colsToSelect, whereClause, null, null);
+
+        String albumArtwork = "";
+        if (cursor.moveToFirst()) {
+            do {
+                albumArtwork = cursor.getString(cursor.getColumnIndex(ARTWORK));
+            } while (cursor.moveToNext());
+        }
+        cursor.close();
+
+        return albumArtwork;
     }
 
     /**
@@ -331,7 +351,7 @@ public class MediaContentProvider extends ListActivity {
      * @param songName The song to start playback from
      */
     private void getAllSongsForAlbumAndReturn(String artist, String album, String songName) {
-        String colsToSelect[] = {ID, TRACK, TITLE, ARTIST, DURATION, ALBUM, FILEPATH};
+        String colsToSelect[] = {ID, TRACK, TITLE, ARTIST, DURATION, ALBUM, FILEPATH, ALBUM_ID};
         String whereClause = ARTIST + " = '" + artist + "' AND " + ALBUM + " = '" + album + "'";
         String sortBy = TRACK + " ASC";
 
@@ -343,6 +363,7 @@ public class MediaContentProvider extends ListActivity {
         ArrayList<Song> songs = new ArrayList<>();
         int start_from = 0;
         int index = 0;
+        String albumId = "";
 
         if (cursor.moveToFirst()) {
             do {
@@ -355,6 +376,8 @@ public class MediaContentProvider extends ListActivity {
                         cursor.getString(cursor.getColumnIndex(FILEPATH))
                 ));
 
+                albumId = cursor.getString(cursor.getColumnIndex(ALBUM_ID));
+
                 if (cursor.getString(cursor.getColumnIndex(TITLE)).equals(songName)) {
                     start_from = index;
                 }
@@ -364,8 +387,11 @@ public class MediaContentProvider extends ListActivity {
         }
         cursor.close();
 
+        String path = getAlbumArtwork(albumId);
+
         bundle.putParcelableArrayList(SONG_ARRAY, songs);
         bundle.putInt(START_FROM, start_from);
+        bundle.putString(ALBUM_ART_PATH, path);
 
         result.putExtras(bundle);
 
@@ -377,7 +403,7 @@ public class MediaContentProvider extends ListActivity {
      * Used as the onScroll listener for the ListView. Will format each of the visible song durations
      * on the song display screen into MM:SS format, rather than milliseconds
      *
-     * @param list The listview to format
+     * @param list The list view to format
      */
     public void formatSongDuration(ListView list) {
         int childCount = list.getChildCount();

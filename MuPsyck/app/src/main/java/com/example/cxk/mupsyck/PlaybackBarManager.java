@@ -29,7 +29,7 @@ public class PlaybackBarManager extends Thread implements Runnable {
 
 
     /**
-     * //TODO
+     * TODO
      *
      * @param c
      * @param positionDisplay
@@ -106,10 +106,6 @@ public class PlaybackBarManager extends Thread implements Runnable {
         Bundle bundle = new Bundle();
         bundle.putString(CURRENT_TIME, formatted);
         bundle.putInt(PERCENT_COMPLETE, percentComplete);
-
-        Log.d("newlog", "cur time = " + formatted + ", %complete = " + getCurrentSongPosition() + "/" + getCurrentSongLength() + " " + (1000 * getCurrentSongPosition() / getCurrentSongLength()));
-
-
         Intent intent = new Intent(MUSIC_PROGRESS_BROADCAST);
         intent.putExtras(bundle);
 
@@ -129,7 +125,7 @@ public class PlaybackBarManager extends Thread implements Runnable {
     /**
      * TODO
      */
-    public void setMusicPlaying(Song s) {
+    public void setMusicPlaying() {
         this.musicPlaying = true;
     }
 
@@ -138,5 +134,17 @@ public class PlaybackBarManager extends Thread implements Runnable {
      */
     public void setMusicStopped() {
         this.musicPlaying = false;
+    }
+
+    /**
+     * Sends a broadcast which will update UI to show the song being {percentComplete}% complete
+     *
+     * @param percentComplete The percentage complete the song should be
+     */
+    public void  seekToPosition(int percentComplete) {
+        sendBroadcast(
+                formatAsTime(this.getCurrentSongLength() * percentComplete/100),
+                percentComplete * 10
+        );
     }
 }

@@ -208,4 +208,13 @@ public class MusicPlayerService extends Service {
     public void setShuffleSetting(boolean shuffle) {
         musicPlayer.setShuffleSetting(shuffle);
     }
+
+    /**
+     * Seek to the a particular position in the playback bar, as a percentage of the total width
+     *
+     * @param percent The percent to seek to
+     */
+    public void seekToPosition(int percent){
+        musicPlayer.seekToPosition(percent);
+    }
 }
