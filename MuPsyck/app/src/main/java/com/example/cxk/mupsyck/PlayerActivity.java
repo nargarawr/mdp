@@ -241,7 +241,10 @@ public class PlayerActivity extends Activity {
     }
 
     /**
-     * TODO
+     * Updates the playback bar and the text view representing the current position in the song
+     *
+     * @param currentTime The current time of the song as an MM:SS string
+     * @param percentComplete How complete the song is, for the playback bar
      */
     public void updatePlaybackPosition(String currentTime, int percentComplete) {
         ((ProgressBar) findViewById(R.id.progressBar)).setProgress(percentComplete);
@@ -309,9 +312,11 @@ public class PlayerActivity extends Activity {
     }
 
     /**
-     * TODO
+     * Launches the MediaContentProvider activity, but index into the current album and artist.
+     * This allows us to reuse that code to represent a "playlist", aka, a list of the current
+     * songs in the queue. Sneaky
      *
-     * @param v
+     * @param v The button clicked
      */
     public void onPlaylistClick(View v) {
         // If there is no music, do nothing
@@ -374,7 +379,7 @@ public class PlayerActivity extends Activity {
     }
 
     /**
-     * TODO
+     * Updates the value of the repeat setting on the UI and in the music player
      */
     public void updateRepeatSetting() {
         if (musicPlayerBinder == null) {
@@ -415,7 +420,7 @@ public class PlayerActivity extends Activity {
     }
 
     /**
-     * TODO
+     * Updates the value of the shuffle setting on the UI and in the music player
      */
     public void updateShuffleSetting() {
         if (musicPlayerBinder == null) {
@@ -504,7 +509,10 @@ public class PlayerActivity extends Activity {
     }
 
     /**
-     *TODO
+     * When the service connection is initiated, will look for any shared preferences to load.
+     * Currently it will get the shuffle setting the user had when they were last using the application,
+     * the repeat setting the user had when they were last using the application, and the queue the user
+     * had when they were last using the application,
      */
     public void lookForSharedPreferences() {
         // Get shuffle setting and invert it, because then our function can set it correctly

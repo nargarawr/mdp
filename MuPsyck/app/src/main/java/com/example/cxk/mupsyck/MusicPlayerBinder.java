@@ -126,11 +126,4 @@ public class MusicPlayerBinder extends Binder {
     public void seekToPosition(int percent){
         musicPlayerService.seekToPosition(percent);
     }
-
-    /**
-     * TODO
-     */
-    public MusicPlayerService getService() {
-        return this.musicPlayerService;
-    }
 }

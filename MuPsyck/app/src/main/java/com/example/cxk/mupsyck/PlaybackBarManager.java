@@ -11,7 +11,9 @@ import android.widget.TextView;
 import java.util.concurrent.TimeUnit;
 
 /**
- * TODO
+ * Class PlaybackBarManager
+ * <p/>
+ * Used to interact with, and update, the playback bar, and the text displaying the current song position
  */
 public class PlaybackBarManager extends Thread implements Runnable {
 
@@ -29,24 +31,22 @@ public class PlaybackBarManager extends Thread implements Runnable {
 
 
     /**
-     * TODO
+     * Default constructor, sets up member variables
      *
-     * @param c
-     * @param positionDisplay
-     * @param durationDisplay
+     * @param c Application context
+     * @param positionDisplay TextView containing the song's current position
+     * @param durationDisplay TextView containing the song's duration
      */
     public PlaybackBarManager(Context c, TextView positionDisplay, TextView durationDisplay) {
-
         this.start();
 
         this.broadcaster = LocalBroadcastManager.getInstance(c);
-
         this.currentSongPositionDisplay = positionDisplay;
         this.songDurationDisplay = durationDisplay;
     }
 
     /**
-     * TODO
+     * Called when the thread starts. Used to send an update of song progress every second
      */
     public void run() {
         while (this.running) {
@@ -68,18 +68,18 @@ public class PlaybackBarManager extends Thread implements Runnable {
     }
 
     /**
-     * TODO
+     * Returns how complete the current song is
      *
-     * @return
+     * @return Percentage completion of current song
      */
     public int getSongPercentageComplete() {
         return (getCurrentSongLength() == 0) ? 0 : (int) (1000 * getCurrentSongPosition() / getCurrentSongLength());
     }
 
     /**
-     * TODO
+     * Returns the length of the current song
      *
-     * @return
+     * @return Length of the current song in seconds
      */
     public long getCurrentSongLength() {
         String currentPos = songDurationDisplay.getText().toString();
@@ -88,9 +88,9 @@ public class PlaybackBarManager extends Thread implements Runnable {
     }
 
     /**
-     * TODO
+     * Returns the current playback position of the song playing
      *
-     * @return
+     * @return The current playback position of the song playing in seconds
      */
     public long getCurrentSongPosition() {
         String currentPos = currentSongPositionDisplay.getText().toString();
@@ -99,8 +99,10 @@ public class PlaybackBarManager extends Thread implements Runnable {
     }
 
     /**
-     * TODO
      * Sends a broadcast to the PlayerActivity so the UI can be updated
+     *
+     * @param formatted An MM:SS formatted string displaying the current position in the current song
+     * @param percentComplete How complete the current song is
      */
     public void sendBroadcast(String formatted, int percentComplete) {
         Bundle bundle = new Bundle();
@@ -113,7 +115,9 @@ public class PlaybackBarManager extends Thread implements Runnable {
     }
 
     /**
-     * TODO
+     * Given a number of seconds, will return an MM:SS string representing them
+     * @param s The number of seconds
+     * @return An MM:SS formatted time
      */
     public String formatAsTime(long s) {
         return String.format("%02d:%02d",
@@ -123,14 +127,14 @@ public class PlaybackBarManager extends Thread implements Runnable {
     }
 
     /**
-     * TODO
+     * Tells the PlaybackBarManager that the song is playing
      */
     public void setMusicPlaying() {
         this.musicPlaying = true;
     }
 
     /**
-     * TODO
+     * Tells the PlaybackBarManager that the song is no longer playing
      */
     public void setMusicStopped() {
         this.musicPlaying = false;
