@@ -1,38 +1,38 @@
 Main Features
 
-ContentProvider
+ContentProvider (MediaContentProvider)
     Select music from device
     Album artwork
 
-MediaPlayer
+MediaPlayer (MusicPlayer)
     Play songs, pause songs, next song, previous song
     Shuffle, Repeat One, Repeat All
 
-ProgressBar
+ProgressBar (ProgressBarManager)
     Display song playback progress
     Ability to seek to certain point in song on click
 
-Bound Service
+Bound Service (MusicPlayerService, MusicPlayerBinder)
     Songs play in the background on a bound service
 
-LocalBroadcastReceiver
+LocalBroadcastReceiver (In PlayerActivity)
     Sends messages from the Service, and the ProgressBar, to the PlayerActivity
 
-Shared preferences
+Global BroadcastReceiver (TelephonyStateListener, and HeadphoneStateListener)
+    Pauses playback when a phone call is received, and resumed it after the call is done
+    On unplug headphones, pause song
+
+Shared preferences (In PlayerActivity)
     Value of the repeat button, value of the shuffle button
 
-Rotations
-    Nothing breaks when the phone rotates
+NotificationBuilder (In MusicPlayerService)
+    Displays an icon when when is playing/paused, and shows the Artist name/Song
+
+
+
 
 TODO FEATURES
-Share on Facebook
 Song Rating
 Get library for updates
-On phone song, pause song
-On unplug headphones, pause song
-Shared preferences
-    Start from music you loaded last time
-Notification
-Notification bar with actions
-Album Art
-
+Rotation
+    Handles rotating of the device without breaking

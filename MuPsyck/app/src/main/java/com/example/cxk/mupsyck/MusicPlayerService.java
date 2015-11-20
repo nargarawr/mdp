@@ -1,9 +1,16 @@
 package com.example.cxk.mupsyck;
 
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Intent;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.os.Build;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
+import android.support.v7.app.NotificationCompat;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -19,33 +26,21 @@ public class MusicPlayerService extends Service {
     private MusicPlayer musicPlayer;
     private LocalBroadcastManager broadcaster = LocalBroadcastManager.getInstance(this);
 
+    public static String SERVICE_REBOUND = "SERVICE_REBOUND";
+    public static String SERVICE_BOUND = "SERVICE_BOUND";
+
+    public static int SERVICE_ID = 999;
+    public static int NOTIFICATION_PENDING_INTENT_REQUEST_CODE = 50;
+
     /**
      * Creates a new music player, and binder when the service is created
      */
     @Override
     public void onCreate() {
+        Log.d("cxk-db", "MusicPlayerService::onCreate()");
         super.onCreate();
         binder = new MusicPlayerBinder(this);
-        musicPlayer = new MusicPlayer(getApplicationContext(), broadcaster);
-    }
-
-    /**
-     * Return the communication channel to the service.  May return null if
-     * clients can not bind to the service.  The returned
-     * {@link android.os.IBinder} is usually for a complex interface
-     * that has been <a href="{@docRoot}guide/components/aidl.html">described using
-     * aidl</a>.
-     *
-     * @param intent The Intent that was used to bind to this service,
-     *               as given to {@link android.content.Context#bindService
-     *               Context.bindService}.  Note that any extras that were included with
-     *               the Intent at that point will <em>not</em> be seen here.
-     * @return Return an IBinder through which clients can call on to the
-     * service.
-     */
-    @Override
-    public IBinder onBind(Intent intent) {
-        return binder;
+        musicPlayer = new MusicPlayer(getApplicationContext(), broadcaster, this);
     }
 
     /**
@@ -65,6 +60,7 @@ public class MusicPlayerService extends Service {
      */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        sendNotification(null);
         return Service.START_STICKY;
     }
 
@@ -74,7 +70,29 @@ public class MusicPlayerService extends Service {
     @Override
     public void onDestroy() {
         musicPlayer = null;
+        stopForeground(true);
         super.onDestroy();
+    }
+
+    /**
+     * Return the communication channel to the service.  May return null if
+     * clients can not bind to the service.  The returned
+     * {@link android.os.IBinder} is usually for a complex interface
+     * that has been <a href="{@docRoot}guide/components/aidl.html">described using
+     * aidl</a>.
+     *
+     * @param intent The Intent that was used to bind to this service,
+     *               as given to {@link android.content.Context#bindService
+     *               Context.bindService}.  Note that any extras that were included with
+     *               the Intent at that point will <em>not</em> be seen here.
+     * @return Return an IBinder through which clients can call on to the
+     * service.
+     */
+    @Override
+    public IBinder onBind(Intent intent) {
+        Intent broadcastIntent = new Intent(SERVICE_BOUND);
+        broadcaster.sendBroadcast(broadcastIntent);
+        return binder;
     }
 
     /**
@@ -84,13 +102,15 @@ public class MusicPlayerService extends Service {
      * of {@link #onUnbind} was overridden to return true.
      *
      * @param intent The Intent that was used to bind to this service,
-     * as given to {@link android.content.Context#bindService
-     * Context.bindService}.  Note that any extras that were included with
-     * the Intent at that point will <em>not</em> be seen here.
+     *               as given to {@link android.content.Context#bindService
+     *               Context.bindService}.  Note that any extras that were included with
+     *               the Intent at that point will <em>not</em> be seen here.
      */
     @Override
     public void onRebind(Intent intent) {
         super.onRebind(intent);
+        Intent broadcastIntent = new Intent(SERVICE_REBOUND);
+        broadcaster.sendBroadcast(broadcastIntent);
     }
 
     /**
@@ -107,7 +127,88 @@ public class MusicPlayerService extends Service {
      */
     @Override
     public boolean onUnbind(Intent intent) {
-        return super.onUnbind(intent);
+        return true;
+    }
+
+    /**
+     * Create an return the notification to display, based on the current song
+     *
+     * @param currentSong The song currently playing
+     *
+     * @return A notification object of the currently playing song
+     */
+    public Notification getNotification(Song currentSong, PendingIntent pendingIntent) {
+        // Create the notification builder
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
+
+        // Add the top bar icon
+        int topBarIcon;
+
+        // If we're on lollipop, use the white icon
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            topBarIcon = this.isPlaying()
+                    ? R.drawable.notification_playing_icon_white
+                    : R.drawable.notification_paused_icon_white;
+        } else {
+            topBarIcon = this.isPlaying()
+                    ? R.drawable.notification_playing_icon
+                    : R.drawable.notification_paused_icon;
+        }
+        builder.setSmallIcon(topBarIcon);
+
+        // If the album has artwork, display this as the big icon, otherwise display the top bar icon again
+        Bitmap bmImg = BitmapFactory.decodeFile(currentSong.getArtwork());
+        if (bmImg == null) {
+            builder.setLargeIcon(BitmapFactory.decodeResource(this.getResources(), topBarIcon));
+        } else {
+            // Scale the image to fit the notification square perfectly
+            Resources res = this.getResources();
+            builder.setLargeIcon(Bitmap.createScaledBitmap(
+                    bmImg,
+                    (int) res.getDimension(android.R.dimen.notification_large_icon_width),
+                    (int) res.getDimension(android.R.dimen.notification_large_icon_height),
+                    false
+            ));
+        }
+
+        // Display song information
+        builder.setContentTitle(currentSong.getArtist());
+        builder.setContentText(currentSong.getName());
+        builder.setTicker(currentSong.getName());
+
+        // Priority, un-closable, and the intent to send
+        builder.setContentIntent(pendingIntent);
+        builder.setOngoing(true);
+        builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+        return builder.build();
+    }
+
+    /**
+     * Sends a notification to the user, displaying the song and artist currently playing, and
+     * allowing them to re-launch the activity after it's destruction and continue their
+     * interaction with the player
+     *
+     * @param currentSong The song currently playing
+     */
+    public void sendNotification(Song currentSong) {
+        if (currentSong == null) {
+            return;
+        }
+
+        Intent notificationIntent = new Intent(this, PlayerActivity.class);
+        notificationIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
+
+        PendingIntent pendingIntent = PendingIntent.getActivity(
+                this,
+                NOTIFICATION_PENDING_INTENT_REQUEST_CODE,
+                notificationIntent,
+                PendingIntent.FLAG_UPDATE_CURRENT
+        );
+
+        Notification notification = getNotification(currentSong, pendingIntent);
+
+        startForeground(SERVICE_ID, notification);
     }
 
     /**
@@ -156,7 +257,6 @@ public class MusicPlayerService extends Service {
      * @return Whether the music player has a queue loaded
      */
     public boolean hasQueue() {
-        Log.d("Binder", "is music player null?!" + (musicPlayer == null));
         return musicPlayer.hasQueue();
     }
 
@@ -214,7 +314,25 @@ public class MusicPlayerService extends Service {
      *
      * @param percent The percent to seek to
      */
-    public void seekToPosition(int percent){
+    public void seekToPosition(float percent) {
         musicPlayer.seekToPosition(percent);
+    }
+
+    /**
+     * Gets the percentage of how complete this song is (0-100)
+     *
+     * @return An integer between 0 and 100 for how complete the current song is
+     */
+    public int getPercentComplete() {
+        return musicPlayer.getPercentComplete();
+    }
+
+    /**
+     * Send a broadcast from the music player to tell the PlayerActivity that playback has changed
+     *
+     * @param keepPlaybackPosition Whether or not to keep where we are in the song on the UI, or reset it
+     */
+    public void sendMusicPlayerBroadcast(boolean keepPlaybackPosition) {
+        musicPlayer.sendBroadcast(keepPlaybackPosition);
     }
 }

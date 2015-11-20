@@ -17,6 +17,7 @@ public class Song implements Parcelable {
     private String duration;
     private String number;
     private String filepath;
+    private String artwork;
 
     /**
      * Default Constructor - Sets up the song object and assigns member variables
@@ -109,21 +110,30 @@ public class Song implements Parcelable {
     }
 
     /**
-     * Returns the song's track number
-     *
-     * @return The track number of the song
-     */
-    public int getNumber() {
-        return Integer.valueOf(this.number);
-    }
-
-    /**
      * Returns the file path of the songg
      *
      * @return The file path of the song
      */
     public String getFilepath() {
         return this.filepath;
+    }
+
+    /**
+     * Returns the file path of the song artwork
+     *
+     * @return the file path of the song artwork
+     */
+    public String getArtwork() {
+        return this.artwork;
+    }
+
+    /**
+     * Sets the artwork of the song's album
+     *
+     * @param artwork The path to this song's album's artwork
+     */
+    public void setArtwork(String artwork){
+        this.artwork = artwork;
     }
 
     /**

@@ -10,4 +10,5 @@
     <string name="currently_playing_string">Currently Playing</string>
     <string name="preference_shuffle">preference_shuffle</string>
     <string name="preference_repeat">preference_repeat</string>
+    <string name="time_zero">00:00</string>
 </resources>

@@ -1,10 +1,6 @@
 package com.example.cxk.mupsyck;
 
 import android.app.Activity;
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.TaskStackBuilder;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -12,16 +8,15 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
 import android.graphics.drawable.BitmapDrawable;
-import android.os.Build;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.os.Bundle;
-import android.support.v4.app.NotificationCompat;
+import android.telephony.PhoneStateListener;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
@@ -47,12 +42,13 @@ public class PlayerActivity extends Activity {
     static final int MEDIA_CONTENT_REQUEST_CODE = 1;
     static final int MEDIA_SHOWLIST_REQUEST_CODE = 2;
 
-    static final int NOTIFICATION_ID = 100;
+    static final String KEEP_PLAYBACK_POSITION = "KEEP_PLAYBACK_POSITION";
 
     private MusicPlayerBinder musicPlayerBinder = null;
     private BroadcastReceiver receiver;
     private ServiceConnection serviceConnection;
     private Intent musicServiceIntent;
+    private TelephonyStateListener telephonyStateListener;
 
     // Private variables that record the state of the shuffle and repeat buttons
     private int shuffleState;
@@ -61,30 +57,9 @@ public class PlayerActivity extends Activity {
     private String albumArtworkPath = "";
     private int phoneWidth;
 
-    private final String SAVED_INSTANCE_BINDER = "SAVED_INSTANCE_BINDER";
-
     private PlaybackBarManager playbackBar;
 
-    SharedPreferences sharedPref;
-
-    /**
-     * TODO
-     * and move
-     *
-     * @param path
-     */
-    public void showAlbumArtwork(String path) {
-        albumArtworkPath = path;
-        Bitmap bmImg = BitmapFactory.decodeFile(albumArtworkPath);
-        if (bmImg == null) {
-            findViewById(R.id.noAlbumArtFound).setVisibility(View.VISIBLE);
-        } else {
-            BitmapDrawable background = new BitmapDrawable(bmImg);
-            findViewById(R.id.backgroundImg).setBackgroundDrawable(background);
-            findViewById(R.id.noAlbumArtFound).setVisibility(View.GONE);
-        }
-        findViewById(R.id.noSongSelected).setVisibility(View.GONE);
-    }
+    private SharedPreferences sharedPref;
 
     /**
      * Called when the activity is starting.
@@ -95,8 +70,7 @@ public class PlayerActivity extends Activity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.d("cxk-db", "value of bundle... " + (savedInstanceState == null));
-
+        Log.d("cxk-db", "PlayerActivity::onCreate()");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
 
@@ -105,13 +79,6 @@ public class PlayerActivity extends Activity {
         Point size = new Point();
         display.getSize(size);
         phoneWidth = size.x;
-
-        if (savedInstanceState != null) {
-            musicPlayerBinder = (MusicPlayerBinder) savedInstanceState.getBinder(SAVED_INSTANCE_BINDER);
-
-            // Displays the album artwork
-            showAlbumArtwork(savedInstanceState.getString(MediaContentProvider.ALBUM_ART_PATH));
-        }
 
         // Creates a service connection
         this.serviceConnection = new ServiceConnection() {
@@ -123,13 +90,28 @@ public class PlayerActivity extends Activity {
              */
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
+                Log.d("cxk-db", "serviceConnection::onServiceConnected()");
                 if (musicPlayerBinder == null) {
                     musicPlayerBinder = (MusicPlayerBinder) service;
-                }
 
-                // Check for any shared preferences
-                sharedPref = getPreferences(Context.MODE_PRIVATE);
-                lookForSharedPreferences();
+                    // Check for any shared preferences
+                    sharedPref = getPreferences(Context.MODE_PRIVATE);
+                    lookForSharedPreferences();
+
+                    // Hook up the telephony state listener to listen for phone calls
+                    telephonyStateListener = new TelephonyStateListener(musicPlayerBinder);
+                    try {
+                        TelephonyManager telephonyManager = (TelephonyManager) getApplicationContext().getSystemService(Context.TELEPHONY_SERVICE);
+                        telephonyManager.listen(telephonyStateListener, PhoneStateListener.LISTEN_CALL_STATE);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+
+                    // Hook up the headphone state listener to listen for headphones being plugged in
+                    IntentFilter receiverFilter = new IntentFilter(Intent.ACTION_HEADSET_PLUG);
+                    HeadphoneStateListener listener = new HeadphoneStateListener(musicPlayerBinder);
+                    registerReceiver(listener, receiverFilter);
+                }
             }
 
             /**
@@ -145,6 +127,8 @@ public class PlayerActivity extends Activity {
 
         // Binds to the service
         musicServiceIntent = new Intent(this, MusicPlayerService.class);
+
+        this.startService(musicServiceIntent);
         this.bindService(
                 musicServiceIntent,
                 serviceConnection,
@@ -160,16 +144,18 @@ public class PlayerActivity extends Activity {
 
         // Add an on click listener to the progress bar so we can seek
         findViewById(R.id.progressBar).setOnTouchListener(new View.OnTouchListener() {
+
             @Override
             public boolean onTouch(View v, MotionEvent event) {
                 if (event.getAction() == MotionEvent.ACTION_DOWN && musicPlayerBinder != null) {
-                    int percentComplete = (int) (100 * event.getX() / phoneWidth);
+                    float percentComplete = (100 * event.getX() / phoneWidth);
 
                     // Seek in the music player
                     musicPlayerBinder.seekToPosition(percentComplete);
 
                     // Update the interface
                     playbackBar.seekToPosition(percentComplete);
+
                 }
                 return true;
             }
@@ -179,100 +165,19 @@ public class PlayerActivity extends Activity {
         receiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
-                if (intent.getAction().equals(MusicPlayer.MUSIC_PLAYER_BROADCAST)) {
-                    updatePlayingUI(true);
-                } else if (intent.getAction().equals(PlaybackBarManager.MUSIC_PROGRESS_BROADCAST)) {
-                    Bundle bundle = intent.getExtras();
-
-                    updatePlaybackPosition(
-                            bundle.getString(PlaybackBarManager.CURRENT_TIME),
-                            bundle.getInt(PlaybackBarManager.PERCENT_COMPLETE)
-                    );
-                }
+                onBroadcastReceived(context, intent);
             }
         };
+
+
 
         // Set initial values of shuffle and repeat states
         shuffleState = 0;
         repeatState = 0;
 
-        // If this is the first time the app has been launched, bring up the music selector straight away
-        // Otherwise, we will load music, so we don't need to display the browse button
-        if (savedInstanceState == null) {
-            onBrowseClick(null);
-        } else {
-            findViewById(R.id.browseButton).setVisibility(View.GONE);
-            findViewById(R.id.browseButtonIcon).setVisibility(View.VISIBLE);
-            findViewById(R.id.browsePlaylistIcon).setVisibility(View.VISIBLE);
+        if (musicPlayerBinder != null && musicPlayerBinder.hasQueue()) {
+            Log.d("cxk-db", "playing .. " + musicPlayerBinder.getPlayingSong().getName());
         }
-    }
-
-    /**
-     * Displays a notification to the user that music is playing. When the user swipes down to see this
-     * notification it will display the name/artist of the playing song, and the artwork, if possible.
-     */
-    public void displayNotification() {
-        Song s = musicPlayerBinder.getPlayingSong();
-
-        // Create the noficiation builder
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
-
-        // Add the topbar icon
-        int topBarIcon;
-
-        // If we're on lollipop, use the white icon
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            topBarIcon = musicPlayerBinder.isPlaying()
-                    ? R.drawable.notification_playing_icon_white
-                    : R.drawable.notification_paused_icon_white;
-        } else {
-            topBarIcon = musicPlayerBinder.isPlaying()
-                    ? R.drawable.notification_playing_icon
-                    : R.drawable.notification_paused_icon;
-        }
-        builder.setSmallIcon(topBarIcon);
-
-        // If the album has artwork, display this as the big icon, otherwise display the topbar icon again
-        Bitmap bmImg = BitmapFactory.decodeFile(albumArtworkPath);
-        if (bmImg == null) {
-            builder.setLargeIcon(BitmapFactory.decodeResource(getResources(), topBarIcon));
-        } else {
-            // Scale the image to fit the notification square perfectly
-            Resources res = this.getResources();
-            builder.setLargeIcon(Bitmap.createScaledBitmap(
-                    bmImg,
-                    (int) res.getDimension(android.R.dimen.notification_large_icon_width),
-                    (int) res.getDimension(android.R.dimen.notification_large_icon_height),
-                    false
-            ));
-        }
-
-        builder.setContentTitle(s.getArtist());
-        builder.setContentText(s.getName());
-
-        // Make the notification unclosable
-        builder.setOngoing(true);
-
-        // Set notification priority
-        builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
-
-        // Create intent to open when we click on the notification
-        Intent intent = new Intent(this, PlayerActivity.class);
-        Bundle bundle = new Bundle();
-        bundle.putBoolean("fuck", true);
-        intent.putExtras(bundle);
-
-        // Creates a "back stack" for the started activity which ensures that pressing the back button
-        // after launcing our activity will go to the home screen
-        TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
-        stackBuilder.addParentStack(PlayerActivity.class);
-        stackBuilder.addNextIntent(intent);
-        PendingIntent resultPendingIntent = stackBuilder.getPendingIntent(0, PendingIntent.FLAG_UPDATE_CURRENT);
-        builder.setContentIntent(resultPendingIntent);
-
-        // Display the notification
-        NotificationManager notificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(NOTIFICATION_ID, builder.build());
     }
 
     /**
@@ -282,28 +187,15 @@ public class PlayerActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-
+        Log.d("cxk-db", "on resumed");
         // If this isn't the first launch, update the UI to reflect any changes that may have happened
         // whilst the activity was not on the top of the stack
         if (musicPlayerBinder != null && musicPlayerBinder.hasQueue()) {
+            Log.d("cxk-db", "on resumed 2");
             updatePlayingUI(true);
+            showAlbumArtwork(albumArtworkPath);
+            playbackBar.seekToPosition(musicPlayerBinder.getPercentComplete());
         }
-    }
-
-    /**
-     * Called to retrieve per-instance state from an activity before being killed
-     * so that the state can be restored in {@link #onCreate} or
-     * {@link #onRestoreInstanceState} (the {@link Bundle} populated by this method
-     * will be passed to both).
-     *
-     * @param savedInstanceState Bundle in which to place the saved state.
-     */
-    @Override
-    public void onSaveInstanceState(Bundle savedInstanceState) {
-        super.onSaveInstanceState(savedInstanceState);
-        savedInstanceState.putBinder(SAVED_INSTANCE_BINDER, this.musicPlayerBinder);
-        savedInstanceState.putString(MediaContentProvider.ALBUM_ART_PATH, albumArtworkPath);
-
     }
 
     /**
@@ -330,13 +222,10 @@ public class PlayerActivity extends Activity {
         ((TextView) findViewById(R.id.currentlyPlayingSong)).setText(playingSong.getName());
         ((TextView) findViewById(R.id.currentlyPlayingArtist)).setText(playingSong.getArtist());
         if (resetTimer) {
-            ((TextView) findViewById(R.id.songCurrentPositionDisplay)).setText("00:00");
+            ((TextView) findViewById(R.id.songCurrentPositionDisplay)).setText(R.string.time_zero);
             ((ProgressBar) findViewById(R.id.progressBar)).setProgress(0);
         }
         ((TextView) findViewById(R.id.songDurationDisplay)).setText(playingSong.getDurationAsString());
-
-        // Update the notification bar
-        displayNotification();
     }
 
     /**
@@ -345,9 +234,9 @@ public class PlayerActivity extends Activity {
      * @param currentTime     The current time of the song as an MM:SS string
      * @param percentComplete How complete the song is, for the playback bar
      */
-    public void updatePlaybackPosition(String currentTime, int percentComplete) {
-        ((ProgressBar) findViewById(R.id.progressBar)).setProgress(percentComplete);
+    public void updatePlaybackPosition(String currentTime, float percentComplete) {
         ((TextView) findViewById(R.id.songCurrentPositionDisplay)).setText(currentTime);
+        ((ProgressBar) findViewById(R.id.progressBar)).setProgress((int) percentComplete);
     }
 
     /**
@@ -359,6 +248,8 @@ public class PlayerActivity extends Activity {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(MusicPlayer.MUSIC_PLAYER_BROADCAST);
         intentFilter.addAction(PlaybackBarManager.MUSIC_PROGRESS_BROADCAST);
+        intentFilter.addAction(MusicPlayerService.SERVICE_REBOUND);
+        intentFilter.addAction(MusicPlayerService.SERVICE_BOUND);
 
         LocalBroadcastManager.getInstance(this).registerReceiver(
                 receiver,
@@ -372,6 +263,7 @@ public class PlayerActivity extends Activity {
     @Override
     protected void onStop() {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
+
         super.onStop();
     }
 
@@ -501,7 +393,6 @@ public class PlayerActivity extends Activity {
         } else {
             repeatButton.setBackgroundResource(R.drawable.repeat_off);
         }
-
     }
 
     /**
@@ -560,6 +451,11 @@ public class PlayerActivity extends Activity {
             int start_from = bundle.getInt(MediaContentProvider.START_FROM);
             String albumArtPath = bundle.getString(MediaContentProvider.ALBUM_ART_PATH);
 
+            // Set the artwork for each of the songs
+            for (Song s : songs) {
+                s.setArtwork(albumArtPath);
+            }
+
             // Displays the album artwork
             showAlbumArtwork(albumArtPath);
 
@@ -578,7 +474,6 @@ public class PlayerActivity extends Activity {
             findViewById(R.id.browseButtonIcon).setVisibility(View.VISIBLE);
             findViewById(R.id.browsePlaylistIcon).setVisibility(View.VISIBLE);
 
-            displayNotification();
             updatePlayingUI(true);
         } else if (requestCode == MEDIA_CONTENT_REQUEST_CODE && resultCode == MediaContentProvider.NO_MUSIC) {
             // Couldn't find any music, show an error
@@ -597,12 +492,8 @@ public class PlayerActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        /*
-        if (!(musicPlayerBinder.isPlaying())) {
-            unbindService(serviceConnection);
-            stopService(musicServiceIntent);
-        }
-        */
+        unbindService(serviceConnection);
+        playbackBar.terminate();
     }
 
     /**
@@ -622,5 +513,70 @@ public class PlayerActivity extends Activity {
         repeatState = (repeatState == 0) ? 2 : (repeatState - 1);
         updateRepeatSetting();
 
+    }
+
+    /**
+     * Displays the artwork for an album, or display a message saying there is none
+     *
+     * @param path The path of the artwork
+     */
+    public void showAlbumArtwork(String path) {
+        albumArtworkPath = path;
+        Bitmap bmImg = BitmapFactory.decodeFile(albumArtworkPath);
+        if (bmImg == null) {
+            findViewById(R.id.noAlbumArtFound).setVisibility(View.VISIBLE);
+        } else {
+            BitmapDrawable background = new BitmapDrawable(bmImg);
+            findViewById(R.id.backgroundImg).setBackgroundDrawable(background);
+            findViewById(R.id.noAlbumArtFound).setVisibility(View.GONE);
+        }
+        findViewById(R.id.noSongSelected).setVisibility(View.GONE);
+    }
+
+    /**
+     *
+     */
+    public void onBroadcastReceived(Context context, Intent intent) {
+        if (intent.getAction().equals(MusicPlayer.MUSIC_PLAYER_BROADCAST)) {
+            // Broadcast to tell us song playback has changed in someway, sent from music player class
+            boolean keepPlaybackPosition = intent.getBooleanExtra(PlayerActivity.KEEP_PLAYBACK_POSITION, false);
+
+            if (keepPlaybackPosition) {
+                updatePlayingUI(false);
+            } else {
+                updatePlayingUI(true);
+                updatePlaybackPosition(getString(R.string.time_zero), 0);
+            }
+
+        } else if (intent.getAction().equals(PlaybackBarManager.MUSIC_PROGRESS_BROADCAST)) {
+            // Broadcast to tell us the music playback has progressed, sent from playback bar manager
+            Bundle bundle = intent.getExtras();
+
+            updatePlaybackPosition(
+                    bundle.getString(PlaybackBarManager.CURRENT_TIME),
+                    bundle.getFloat(PlaybackBarManager.PERCENT_COMPLETE)
+            );
+
+        } else if (intent.getAction().equals(MusicPlayerService.SERVICE_BOUND)) {
+            // Broadcast to tell us when the service is first created
+            // If this is the case, bring up the music selector straight away
+            onBrowseClick(null);
+
+        } else if (intent.getAction().equals(MusicPlayerService.SERVICE_REBOUND)) {
+            // Broadcast to tell us when the service is rebound, sent from the music service
+            updatePlayingUI(true);
+            albumArtworkPath = musicPlayerBinder.getPlayingSong().getArtwork();
+            showAlbumArtwork(albumArtworkPath);
+
+            playbackBar.seekToPosition(musicPlayerBinder.getPercentComplete());
+
+            findViewById(R.id.browseButton).setVisibility(View.GONE);
+            findViewById(R.id.browseButtonIcon).setVisibility(View.VISIBLE);
+            findViewById(R.id.browsePlaylistIcon).setVisibility(View.VISIBLE);
+        }
+
+        if (intent.getAction().equals(Intent.ACTION_HEADSET_PLUG)) {
+            Log.d("cxk-db", "----------------HEADPHONES?!?!?!");
+        }
     }
 }

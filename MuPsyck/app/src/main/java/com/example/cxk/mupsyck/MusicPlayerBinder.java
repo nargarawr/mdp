@@ -2,7 +2,6 @@ package com.example.cxk.mupsyck;
 
 
 import android.os.Binder;
-import android.util.Log;
 
 import java.util.ArrayList;
 
@@ -65,7 +64,6 @@ public class MusicPlayerBinder extends Binder {
      * @return Whether the music player has a queue loaded
      */
     public boolean hasQueue() {
-        Log.d("Binder", "is music service null?!" + (musicPlayerService == null));
         return musicPlayerService.hasQueue();
     }
 
@@ -123,7 +121,25 @@ public class MusicPlayerBinder extends Binder {
      *
      * @param percent The percent to seek to
      */
-    public void seekToPosition(int percent){
+    public void seekToPosition(float percent) {
         musicPlayerService.seekToPosition(percent);
+    }
+
+    /**
+     * Gets the percentage of how complete this song is (0-100)
+     *
+     * @return An integer between 0 and 100 for how complete the current song is
+     */
+    public int getPercentComplete() {
+        return musicPlayerService.getPercentComplete();
+    }
+
+    /**
+     * Send a broadcast from the music player to tell the PlayerActivity that playback has changed
+     *
+     * @param keepPlaybackPosition Whether or not to keep where we are in the song on the UI, or reset it
+     */
+    public void sendMusicPlayerBroadcast(boolean keepPlaybackPosition) {
+        musicPlayerService.sendMusicPlayerBroadcast(keepPlaybackPosition);
     }
 }

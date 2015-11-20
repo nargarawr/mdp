@@ -14,7 +14,6 @@ import android.provider.MediaStore;
 import android.database.Cursor;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.util.Log;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.ListView;

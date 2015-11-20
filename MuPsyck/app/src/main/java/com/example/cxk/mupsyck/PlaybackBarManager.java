@@ -29,7 +29,6 @@ public class PlaybackBarManager extends Thread implements Runnable {
 
     private LocalBroadcastManager broadcaster;
 
-
     /**
      * Default constructor, sets up member variables
      *
@@ -104,10 +103,10 @@ public class PlaybackBarManager extends Thread implements Runnable {
      * @param formatted An MM:SS formatted string displaying the current position in the current song
      * @param percentComplete How complete the current song is
      */
-    public void sendBroadcast(String formatted, int percentComplete) {
+    public void sendBroadcast(String formatted, float percentComplete) {
         Bundle bundle = new Bundle();
         bundle.putString(CURRENT_TIME, formatted);
-        bundle.putInt(PERCENT_COMPLETE, percentComplete);
+        bundle.putFloat(PERCENT_COMPLETE, percentComplete);
         Intent intent = new Intent(MUSIC_PROGRESS_BROADCAST);
         intent.putExtras(bundle);
 
@@ -145,10 +144,17 @@ public class PlaybackBarManager extends Thread implements Runnable {
      *
      * @param percentComplete The percentage complete the song should be
      */
-    public void  seekToPosition(int percentComplete) {
+    public void seekToPosition(float percentComplete) {
         sendBroadcast(
-                formatAsTime(this.getCurrentSongLength() * percentComplete/100),
+                formatAsTime((int) (this.getCurrentSongLength() * (percentComplete / 100))),
                 percentComplete * 10
         );
+    }
+
+    /**
+     * Ceases the running of this thread
+     */
+    public void terminate(){
+        this.running = false;
     }
 }

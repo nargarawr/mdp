@@ -1,30 +1,42 @@
 package com.example.cxk.mupsyck;
 
-import  android.content.Context;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
+import android.app.TaskStackBuilder;
+import android.content.Context;
 import android.content.Intent;
+import android.content.res.Resources;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Build;
+import android.os.Bundle;
+import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
+
 import java.io.IOException;
 import java.util.ArrayList;
 
 
 /**
  * Class MusicPlayer
- *
+ * <p/>
  * Used to interact with a MediaPlayer object, and to mediate interaction from the rest of the application
  * to this media player.
  */
-public class MusicPlayer extends Thread  {
+public class MusicPlayer extends Thread {
 
     private PlaybackQueue playbackQueue;
     private boolean hasDataSource = false;
     private MediaPlayer mediaPlayer;
     private Context context;
     private LocalBroadcastManager broadcaster;
+    private MusicPlayerService musicPlayerService;
     public static String MUSIC_PLAYER_BROADCAST = "MUSIC_PLAYER_BROADCAST";
+
 
     // Playback options
     private boolean loopingOne = false;
@@ -39,7 +51,7 @@ public class MusicPlayer extends Thread  {
      * @param context     Application context
      * @param broadcaster Broadcaster to send messages to PlayerActivity
      */
-    public MusicPlayer(Context context, LocalBroadcastManager broadcaster) {
+    public MusicPlayer(Context context, LocalBroadcastManager broadcaster, MusicPlayerService musicPlayerService) {
         this.start();
 
         this.playbackQueue = new PlaybackQueue();
@@ -47,6 +59,7 @@ public class MusicPlayer extends Thread  {
         this.mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC);
         this.context = context;
         this.broadcaster = broadcaster;
+        this.musicPlayerService = musicPlayerService;
 
         this.mediaPlayer.setOnCompletionListener(new MediaPlayer.OnCompletionListener() {
             /**
@@ -60,12 +73,17 @@ public class MusicPlayer extends Thread  {
         });
     }
 
+
     /**
      * Sends a broadcast to the PlayerActivity so the UI can be updated
+     *
+     * @param keepPlaybackPosition Whether or not the play back position should be keep, or set to 0
      */
-    public void sendBroadcast() {
+    public void sendBroadcast(boolean keepPlaybackPosition) {
         Intent intent = new Intent(MUSIC_PLAYER_BROADCAST);
+        intent.putExtra(PlayerActivity.KEEP_PLAYBACK_POSITION, keepPlaybackPosition);
         broadcaster.sendBroadcast(intent);
+        musicPlayerService.sendNotification(getPlayingSong());
     }
 
     /**
@@ -86,6 +104,7 @@ public class MusicPlayer extends Thread  {
     public void beginPlayback() {
         if (this.hasDataSource) {
             mediaPlayer.start();
+            musicPlayerService.sendNotification(getPlayingSong());
             return;
         }
 
@@ -99,11 +118,13 @@ public class MusicPlayer extends Thread  {
 
             this.mediaPlayer.prepare();
             this.mediaPlayer.start();
-        } catch (IOException e) {
-            e.printStackTrace();
+
+            musicPlayerService.sendNotification(getPlayingSong());
         } catch (Exception e) {
             e.printStackTrace();
         }
+
+
     }
 
     /**
@@ -111,6 +132,7 @@ public class MusicPlayer extends Thread  {
      */
     public void pausePlayback() {
         mediaPlayer.pause();
+        musicPlayerService.sendNotification(getPlayingSong());
     }
 
     /**
@@ -161,7 +183,7 @@ public class MusicPlayer extends Thread  {
         if (successful) {
             beginPlayback();
         }
-        sendBroadcast();
+        sendBroadcast(false);
     }
 
     /**
@@ -174,7 +196,7 @@ public class MusicPlayer extends Thread  {
         // Stop playback and reset the player, and play again (previous song will always return a return)
         stopPlayback();
         beginPlayback();
-        sendBroadcast();
+        sendBroadcast(false);
     }
 
     /**
@@ -212,9 +234,20 @@ public class MusicPlayer extends Thread  {
      *
      * @param percent The percent to seek to
      */
-    public void seekToPosition(int percent){
-        int duration = playbackQueue.getSong().getDuration();
-        mediaPlayer.seekTo(duration * percent/100);
+    public void seekToPosition(float percent) {
+        float duration = playbackQueue.getSong().getDuration();
+        mediaPlayer.seekTo((int) (duration * (percent / 100)));
+    }
+
+    /**
+     * Gets the percentage of how complete this song is (0-100)
+     *
+     * @return An integer between 0 and 100 for how complete the current song is
+     */
+    public int getPercentComplete() {
+        float position = mediaPlayer.getCurrentPosition() / 1000;
+        float duration = mediaPlayer.getDuration() / 1000;
+        return (int) ((position / duration) * 100);
     }
 
 }
