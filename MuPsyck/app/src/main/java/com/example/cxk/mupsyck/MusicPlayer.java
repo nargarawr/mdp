@@ -29,13 +29,14 @@ import java.util.ArrayList;
  */
 public class MusicPlayer extends Thread {
 
+    static final String MUSIC_PLAYER_BROADCAST = "MUSIC_PLAYER_BROADCAST";
+
     private PlaybackQueue playbackQueue;
     private boolean hasDataSource = false;
     private MediaPlayer mediaPlayer;
     private Context context;
     private LocalBroadcastManager broadcaster;
     private MusicPlayerService musicPlayerService;
-    public static String MUSIC_PLAYER_BROADCAST = "MUSIC_PLAYER_BROADCAST";
 
 
     // Playback options

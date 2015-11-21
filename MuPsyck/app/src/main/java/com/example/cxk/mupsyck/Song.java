@@ -11,13 +11,18 @@ import java.util.concurrent.TimeUnit;
  * Represents a Song
  */
 public class Song implements Parcelable {
+    // Fields added in the constructor
     private String artist;
     private String album;
     private String name;
     private String duration;
     private String number;
     private String filepath;
+
+    // Fields added later
+    // rating is stored as a string to make the process of parcelling easier
     private String artwork;
+    private String rating;
 
     /**
      * Default Constructor - Sets up the song object and assigns member variables
@@ -43,7 +48,7 @@ public class Song implements Parcelable {
      * @param p The parcel to read from
      */
     public Song(Parcel p) {
-        String[] data = new String[6];
+        String[] data = new String[8];
         p.readStringArray(data);
 
         this.artist = data[0];
@@ -52,6 +57,8 @@ public class Song implements Parcelable {
         this.duration = data[3];
         this.number = data[4];
         this.filepath = data[5];
+        this.artwork = data[6];
+        this.rating = data[7];
     }
 
     /**
@@ -137,6 +144,22 @@ public class Song implements Parcelable {
     }
 
     /**
+     * TODO
+     * @return
+     */
+    public int getRating(){
+        return Integer.parseInt(this.rating);
+    }
+
+    /**
+     * TODO
+     * @param rating
+     */
+    public void setRating(String rating) {
+        this.rating = rating;
+    }
+
+    /**
      * Not used
      *
      * @return 0
@@ -159,7 +182,9 @@ public class Song implements Parcelable {
                 this.name,
                 this.duration,
                 this.number,
-                this.filepath
+                this.filepath,
+                this.artwork,
+                this.rating
         });
     }
 

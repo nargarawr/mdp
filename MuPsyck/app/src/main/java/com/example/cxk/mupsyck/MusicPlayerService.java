@@ -26,11 +26,11 @@ public class MusicPlayerService extends Service {
     private MusicPlayer musicPlayer;
     private LocalBroadcastManager broadcaster = LocalBroadcastManager.getInstance(this);
 
-    public static String SERVICE_REBOUND = "SERVICE_REBOUND";
-    public static String SERVICE_BOUND = "SERVICE_BOUND";
+    static final String SERVICE_REBOUND = "SERVICE_REBOUND";
+    static final String SERVICE_BOUND = "SERVICE_BOUND";
 
-    public static int SERVICE_ID = 999;
-    public static int NOTIFICATION_PENDING_INTENT_REQUEST_CODE = 50;
+    static final int SERVICE_ID = 999;
+    static final int NOTIFICATION_PENDING_INTENT_REQUEST_CODE = 50;
 
     /**
      * Creates a new music player, and binder when the service is created
@@ -45,17 +45,17 @@ public class MusicPlayerService extends Service {
 
     /**
      * Called by the system every time a client explicitly starts the service by calling
-     * {@link android.content.Context#startService}, providing the arguments it supplied and a
+     * android.content.Context::startService, providing the arguments it supplied and a
      * unique integer token representing the start request.  Do not call this method directly.
      *
-     * @param intent  The Intent supplied to {@link android.content.Context#startService},
+     * @param intent  The Intent supplied to android.content.Context::startService,
      *                as given.  This may be null if the service is being restarted after
      *                its process has gone away, and it had previously returned anything
-     *                except {@link #START_STICKY_COMPATIBILITY}.
+     *                except START_STICKY_COMPATIBILITY.
      * @param flags   Additional data about this start request.  Currently either
-     *                0, {@link #START_FLAG_REDELIVERY}, or {@link #START_FLAG_RETRY}.
+     *                0, #START_FLAG_REDELIVERY, or START_FLAG_RETRY.
      * @param startId A unique integer representing this specific request to
-     *                start.  Use with {@link #stopSelfResult(int)}.
+     *                start.  Use with stopSelfResult(int).
      * @return The service start type
      */
     @Override
@@ -77,12 +77,12 @@ public class MusicPlayerService extends Service {
     /**
      * Return the communication channel to the service.  May return null if
      * clients can not bind to the service.  The returned
-     * {@link android.os.IBinder} is usually for a complex interface
+     * android.os.IBinder is usually for a complex interface
      * that has been <a href="{@docRoot}guide/components/aidl.html">described using
      * aidl</a>.
      *
      * @param intent The Intent that was used to bind to this service,
-     *               as given to {@link android.content.Context#bindService
+     *               as given to android.content.Context::bindService
      *               Context.bindService}.  Note that any extras that were included with
      *               the Intent at that point will <em>not</em> be seen here.
      * @return Return an IBinder through which clients can call on to the
@@ -98,13 +98,13 @@ public class MusicPlayerService extends Service {
     /**
      * Called when new clients have connected to the service, after it had
      * previously been notified that all had disconnected in its
-     * {@link #onUnbind}.  This will only be called if the implementation
-     * of {@link #onUnbind} was overridden to return true.
+     * onUnbind.  This will only be called if the implementation
+     * of onUnbind was overridden to return true.
      *
      * @param intent The Intent that was used to bind to this service,
-     *               as given to {@link android.content.Context#bindService
-     *               Context.bindService}.  Note that any extras that were included with
-     *               the Intent at that point will <em>not</em> be seen here.
+     *               as given to android.content.Context::bindService Context.bindService}.
+     *               Note that any extras that were included with the Intent at that point
+     *               will <em>not</em> be seen here.
      */
     @Override
     public void onRebind(Intent intent) {
@@ -119,11 +119,11 @@ public class MusicPlayerService extends Service {
      * returns false.
      *
      * @param intent The Intent that was used to bind to this service,
-     *               as given to {@link android.content.Context#bindService
-     *               Context.bindService}.  Note that any extras that were included with
+     *               as given to android.content.Context::bindService
+     *               Context.bindService. Note that any extras that were included with
      *               the Intent at that point will <em>not</em> be seen here.
      * @return Return true if you would like to have the service's
-     * {@link #onRebind} method later called when new clients bind to it.
+     * onRebind method later called when new clients bind to it.
      */
     @Override
     public boolean onUnbind(Intent intent) {
@@ -134,7 +134,6 @@ public class MusicPlayerService extends Service {
      * Create an return the notification to display, based on the current song
      *
      * @param currentSong The song currently playing
-     *
      * @return A notification object of the currently playing song
      */
     public Notification getNotification(Song currentSong, PendingIntent pendingIntent) {
@@ -178,7 +177,10 @@ public class MusicPlayerService extends Service {
 
         // Priority, un-closable, and the intent to send
         builder.setContentIntent(pendingIntent);
+
         builder.setOngoing(true);
+        builder.setAutoCancel(false);
+
         builder.setPriority(NotificationCompat.PRIORITY_DEFAULT);
 
         return builder.build();

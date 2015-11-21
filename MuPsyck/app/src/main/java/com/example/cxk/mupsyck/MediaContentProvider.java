@@ -7,6 +7,7 @@ import android.app.ListActivity;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
@@ -14,6 +15,7 @@ import android.provider.MediaStore;
 import android.database.Cursor;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.util.Log;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.ListView;
@@ -45,31 +47,32 @@ public class MediaContentProvider extends ListActivity {
     // Request code for when we ask for the READ_EXTERNAL_STORAGE permission
     static final int PERMISSION_REQUEST_CODE = 3;
 
-    final static String DISPLAY_PLAYLIST = "DISPLAY_PLAYLIST";
+    // Used for broadcasts from this activity
+    static final String DISPLAY_PLAYLIST = "DISPLAY_PLAYLIST";
 
     // Used for passing the Intent out of the class back to MainActivity
-    final static String SONG_ARRAY = "SONG_ARRAY";
-    final static String START_FROM = "START_FROM";
-    final static String ALBUM_ART_PATH = "ALBUM_ART_PATH";
+    static final String SONG_ARRAY = "SONG_ARRAY";
+    static final String START_FROM = "START_FROM";
+    static final String ALBUM_ART_PATH = "ALBUM_ART_PATH";
 
     // Used to tell the PlayerActivity that there is no music on the phone
     final static int NO_MUSIC = 10;
 
     // Media store variables for easy access
-    final static String ID = MediaStore.Audio.Media._ID;
-    final static String TRACK = MediaStore.Audio.Media.TRACK;
-    final static String TITLE = MediaStore.Audio.Media.TITLE;
-    final static String ARTIST = MediaStore.Audio.Media.ARTIST;
-    final static String DURATION = MediaStore.Audio.Media.DURATION;
-    final static String ALBUM = MediaStore.Audio.Media.ALBUM;
-    final static String ARTWORK = MediaStore.Audio.Albums.ALBUM_ART;
-    final static String ALBUM_ID = MediaStore.Audio.Media.ALBUM_ID;
-    final static String FILEPATH = MediaStore.Audio.Media.DATA;
-    Uri content_uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
+    static final String ID = MediaStore.Audio.Media._ID;
+    static final String TRACK = MediaStore.Audio.Media.TRACK;
+    static final String TITLE = MediaStore.Audio.Media.TITLE;
+    static final String ARTIST = MediaStore.Audio.Media.ARTIST;
+    static final String DURATION = MediaStore.Audio.Media.DURATION;
+    static final String ALBUM = MediaStore.Audio.Media.ALBUM;
+    static final String ARTWORK = MediaStore.Audio.Albums.ALBUM_ART;
+    static final String ALBUM_ID = MediaStore.Audio.Media.ALBUM_ID;
+    static final String FILEPATH = MediaStore.Audio.Media.DATA;
+    private Uri content_uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI;
 
     // Used to tell the MediaContentProvider what type of content to retrieve
-    final static String SONG = "SONG";
-    final static String TYPE = "TYPE";
+    static final String SONG = "SONG";
+    static final String TYPE = "TYPE";
     private String media_type;
 
     // Used internally to filter the results of the queries
@@ -184,6 +187,9 @@ public class MediaContentProvider extends ListActivity {
      * Gets and displays the content for this media content provider. This will be, depending on
      * the value of the {media_type} variable: ARTIST, all artists on the phone; ALBUM, all albums
      * for a given artist on the phone; or SONG, all songs for a given album (and artist) on the phone.
+     * <p/>
+     * <b> NB. The emulator doesn't seem to update when new music is added to the phone,
+     * but running it on an actual phone will (i.e, if you add new music it will be pulled in. </b>
      */
     public void getContent() {
         String colsToSelect[];
@@ -319,7 +325,6 @@ public class MediaContentProvider extends ListActivity {
      * Get album artwork for an album
      *
      * @param albumId An album id for the album to get the artwork for
-     *
      * @return The path to the album artwork for the provided album
      */
     private String getAlbumArtwork(String albumId) {
@@ -337,7 +342,20 @@ public class MediaContentProvider extends ListActivity {
         }
         cursor.close();
 
+
+        Log.d("cxk-db", "Album artwork - " + albumArtwork);
+
         return albumArtwork;
+    }
+
+    /**
+     * TODO
+     * @return
+     */
+    private String getSongRating(Song s) {
+        DBHelper dbHelper = new DBHelper(this);
+        //SQLiteDatabase database = dbHelper.getWritableDatabase();
+        return dbHelper.getSongRating(s.getFilepath());
     }
 
     /**
@@ -387,6 +405,12 @@ public class MediaContentProvider extends ListActivity {
         cursor.close();
 
         String path = getAlbumArtwork(albumId);
+
+        // Set the artwork and rating for each of the songs
+        for (Song s : songs) {
+            s.setArtwork(path);
+            s.setRating(getSongRating(s));
+        }
 
         bundle.putParcelableArrayList(SONG_ARRAY, songs);
         bundle.putInt(START_FROM, start_from);

@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
-import android.util.Log;
 import android.widget.TextView;
 
 import java.util.concurrent.TimeUnit;
@@ -17,9 +16,9 @@ import java.util.concurrent.TimeUnit;
  */
 public class PlaybackBarManager extends Thread implements Runnable {
 
-    public static String MUSIC_PROGRESS_BROADCAST = "MUSIC_PROGRESS_BROADCAST";
-    public static String CURRENT_TIME = "CURRENT_TIME";
-    public static String PERCENT_COMPLETE = "PERCENT_COMPLETE";
+    static final String MUSIC_PROGRESS_BROADCAST = "MUSIC_PROGRESS_BROADCAST";
+    static final String CURRENT_TIME = "CURRENT_TIME";
+    static final String PERCENT_COMPLETE = "PERCENT_COMPLETE";
 
     private boolean musicPlaying = false;
     private boolean running = true;

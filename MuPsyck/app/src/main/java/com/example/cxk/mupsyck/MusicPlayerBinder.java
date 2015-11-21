@@ -14,6 +14,11 @@ public class MusicPlayerBinder extends Binder {
 
     private MusicPlayerService musicPlayerService;
 
+    /**
+     * Default constructor, assigns member variables
+     *
+     * @param mps The music player service
+     */
     public MusicPlayerBinder(MusicPlayerService mps) {
         this.musicPlayerService = mps;
     }

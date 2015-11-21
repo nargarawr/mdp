@@ -8,6 +8,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
@@ -49,24 +50,20 @@ public class PlayerActivity extends Activity {
     private ServiceConnection serviceConnection;
     private Intent musicServiceIntent;
     private TelephonyStateListener telephonyStateListener;
+    private PlaybackBarManager playbackBar;
+    private SharedPreferences sharedPref;
 
-    // Private variables that record the state of the shuffle and repeat buttons
     private int shuffleState;
     private int repeatState;
-
     private String albumArtworkPath = "";
     private int phoneWidth;
-
-    private PlaybackBarManager playbackBar;
-
-    private SharedPreferences sharedPref;
 
     /**
      * Called when the activity is starting.
      *
      * @param savedInstanceState If the activity is being re-initialized after
      *                           previously being shut down then this Bundle contains the data it most
-     *                           recently supplied in {@link #onSaveInstanceState}.  <b><i>Note: Otherwise it is null.</i></b>
+     *                           recently supplied in onSaveInstanceState. <b><i>Note: Otherwise it is null.</i></b>
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -170,7 +167,6 @@ public class PlayerActivity extends Activity {
         };
 
 
-
         // Set initial values of shuffle and repeat states
         shuffleState = 0;
         repeatState = 0;
@@ -181,8 +177,8 @@ public class PlayerActivity extends Activity {
     }
 
     /**
-     * Called after {@link #onRestoreInstanceState}, {@link #onRestart}, or
-     * {@link #onPause}, for your activity to start interacting with the user.
+     * Called after onRestoreInstanceState, onRestart, or
+     * #onPause, for your activity to start interacting with the user.
      */
     @Override
     protected void onResume() {
@@ -226,6 +222,8 @@ public class PlayerActivity extends Activity {
             ((ProgressBar) findViewById(R.id.progressBar)).setProgress(0);
         }
         ((TextView) findViewById(R.id.songDurationDisplay)).setText(playingSong.getDurationAsString());
+
+        setStarsOn(musicPlayerBinder.getPlayingSong().getRating());
     }
 
     /**
@@ -263,7 +261,6 @@ public class PlayerActivity extends Activity {
     @Override
     protected void onStop() {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(receiver);
-
         super.onStop();
     }
 
@@ -410,6 +407,39 @@ public class PlayerActivity extends Activity {
     }
 
     /**
+     * Deals with the user giving a song a rating, updates the UI to display the new rating,
+     * and updates the database
+     *
+     * @param v Which star button was clicked
+     */
+    public void onStarClick(View v) {
+        // Firstly, we get which star was clicked, and update all other stars to be on or off
+        String idAsString = v.getResources().getResourceName(v.getId());
+        int clickedStar = Integer.parseInt(idAsString.substring(idAsString.length() - 1));
+        setStarsOn(clickedStar);
+
+        // Finally, we send the updated rating to the database for storage
+        // TODO
+    }
+
+    /**
+     * TODO
+     * @param clickedStar
+     */
+    public void setStarsOn(int clickedStar) {
+        for (int i = 1; i <= 5; i++) {
+            int resourceId = getResources().getIdentifier("btnStar" + i, "id", getPackageName());
+            ImageButton star = (ImageButton) findViewById(resourceId);
+
+            if (i <= clickedStar) {
+                star.setBackgroundResource(R.drawable.star_on_button);
+            } else {
+                star.setBackgroundResource(R.drawable.star_off_button);
+            }
+        }
+    }
+
+    /**
      * Updates the value of the shuffle setting on the UI and in the music player
      */
     public void updateShuffleSetting() {
@@ -451,11 +481,6 @@ public class PlayerActivity extends Activity {
             int start_from = bundle.getInt(MediaContentProvider.START_FROM);
             String albumArtPath = bundle.getString(MediaContentProvider.ALBUM_ART_PATH);
 
-            // Set the artwork for each of the songs
-            for (Song s : songs) {
-                s.setArtwork(albumArtPath);
-            }
-
             // Displays the album artwork
             showAlbumArtwork(albumArtPath);
 
@@ -494,6 +519,11 @@ public class PlayerActivity extends Activity {
         super.onDestroy();
         unbindService(serviceConnection);
         playbackBar.terminate();
+
+        // If music playback is stopped, and the app closed, destroy the service
+        if (!musicPlayerBinder.isPlaying()) {
+            stopService(musicServiceIntent);
+        }
     }
 
     /**
