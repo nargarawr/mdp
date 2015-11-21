@@ -32,9 +32,8 @@ Main Features
     Rotation
         Handles rotating of the device without breaking
 
-TODO FEATURES
-Song Rating (DBHelper)
-    Use of SQLite Database to store song rating
+    Song Rating (DBHelper)
+        Use of SQLite Database to store song rating
 
 
 

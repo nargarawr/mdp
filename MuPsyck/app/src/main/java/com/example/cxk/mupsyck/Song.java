@@ -2,7 +2,6 @@ package com.example.cxk.mupsyck;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -22,7 +21,7 @@ public class Song implements Parcelable {
     // Fields added later
     // rating is stored as a string to make the process of parcelling easier
     private String artwork;
-    private String rating;
+    private String rating = "0";
 
     /**
      * Default Constructor - Sets up the song object and assigns member variables
@@ -117,7 +116,7 @@ public class Song implements Parcelable {
     }
 
     /**
-     * Returns the file path of the songg
+     * Returns the file path of the song
      *
      * @return The file path of the song
      */
@@ -144,16 +143,18 @@ public class Song implements Parcelable {
     }
 
     /**
-     * TODO
-     * @return
+     * Returns the song's rating
+     *
+     * @return Song rating, integer between 0 and 5
      */
     public int getRating(){
         return Integer.parseInt(this.rating);
     }
 
     /**
-     * TODO
-     * @param rating
+     * Sets the song rating
+     *
+     * @param rating The rating of the song, between 1 and 5
      */
     public void setRating(String rating) {
         this.rating = rating;

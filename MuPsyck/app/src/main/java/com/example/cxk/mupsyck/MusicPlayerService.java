@@ -11,8 +11,6 @@ import android.os.Build;
 import android.os.IBinder;
 import android.support.v4.content.LocalBroadcastManager;
 import android.support.v7.app.NotificationCompat;
-import android.util.Log;
-
 import java.util.ArrayList;
 
 /**
@@ -26,9 +24,11 @@ public class MusicPlayerService extends Service {
     private MusicPlayer musicPlayer;
     private LocalBroadcastManager broadcaster = LocalBroadcastManager.getInstance(this);
 
+    // IDs for broadcasts from this class
     static final String SERVICE_REBOUND = "SERVICE_REBOUND";
     static final String SERVICE_BOUND = "SERVICE_BOUND";
 
+    // IDs for notifications and the service itself
     static final int SERVICE_ID = 999;
     static final int NOTIFICATION_PENDING_INTENT_REQUEST_CODE = 50;
 
@@ -37,7 +37,6 @@ public class MusicPlayerService extends Service {
      */
     @Override
     public void onCreate() {
-        Log.d("cxk-db", "MusicPlayerService::onCreate()");
         super.onCreate();
         binder = new MusicPlayerBinder(this);
         musicPlayer = new MusicPlayer(getApplicationContext(), broadcaster, this);
@@ -238,7 +237,7 @@ public class MusicPlayerService extends Service {
     }
 
     /**
-     * Stops playback of the current song, resets the music player and resets the datasource
+     * Stops playback of the current song, resets the music player and resets the data source
      */
     public void stopPlayback() {
         musicPlayer.stopPlayback();

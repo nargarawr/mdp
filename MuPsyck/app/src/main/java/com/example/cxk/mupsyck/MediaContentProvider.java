@@ -1,27 +1,24 @@
 package com.example.cxk.mupsyck;
 
-
 import android.Manifest;
 import android.app.Activity;
 import android.app.ListActivity;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.database.Cursor;
+import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
-import android.util.Log;
 import android.view.View;
 import android.widget.AbsListView;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 import android.widget.TextView;
-
 import java.util.ArrayList;
 import java.util.concurrent.TimeUnit;
 
@@ -56,7 +53,7 @@ public class MediaContentProvider extends ListActivity {
     static final String ALBUM_ART_PATH = "ALBUM_ART_PATH";
 
     // Used to tell the PlayerActivity that there is no music on the phone
-    final static int NO_MUSIC = 10;
+    static final int NO_MUSIC = 10;
 
     // Media store variables for easy access
     static final String ID = MediaStore.Audio.Media._ID;
@@ -170,7 +167,7 @@ public class MediaContentProvider extends ListActivity {
      * @param grantResults The permissions granted
      */
     @Override
-    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String permissions[], @NonNull int[] grantResults) {
         switch (requestCode) {
             case PERMISSION_REQUEST_CODE: {
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
@@ -191,6 +188,7 @@ public class MediaContentProvider extends ListActivity {
      * <b> NB. The emulator doesn't seem to update when new music is added to the phone,
      * but running it on an actual phone will (i.e, if you add new music it will be pulled in. </b>
      */
+    @SuppressWarnings("deprecation")
     public void getContent() {
         String colsToSelect[];
         String colsToDisplay[];
@@ -237,23 +235,28 @@ public class MediaContentProvider extends ListActivity {
         ContentResolver cr = getContentResolver();
         Cursor cursor = cr.query(content_uri, colsToSelect, whereClause, null, sortBy);
 
-        // If there is no music to be found, return and display error toast
-        if (media_type.equals(ARTIST) && cursor.getCount() == 0) {
-            setResult(NO_MUSIC, null);
-            finish();
+        try {
+            // If there is no music to be found, return and display error toast
+            if (media_type.equals(ARTIST) && cursor.getCount() == 0) {
+                setResult(NO_MUSIC, null);
+                finish();
+            }
+
+            // If there is music, display it in a list view
+            if (cursor != null && cursor.getCount() > 0) {
+                SimpleCursorAdapter sca = new SimpleCursorAdapter(
+                        this,
+                        layout,
+                        cursor,
+                        colsToDisplay,
+                        colsToDisplayLocation
+                );
+                this.setListAdapter(sca);
+            }
+        } catch (NullPointerException e) {
+            e.printStackTrace();
         }
 
-        // If there is music, display it in a list view
-        if (cursor != null && cursor.getCount() > 0) {
-            SimpleCursorAdapter sca = new SimpleCursorAdapter(
-                    this,
-                    layout,
-                    cursor,
-                    colsToDisplay,
-                    colsToDisplayLocation
-            );
-            this.setListAdapter(sca);
-        }
     }
 
     /**
@@ -332,29 +335,37 @@ public class MediaContentProvider extends ListActivity {
         String whereClause = MediaStore.Audio.Albums._ID + " = " + albumId;
 
         ContentResolver cr = getContentResolver();
-        Cursor cursor = cr.query(MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI, colsToSelect, whereClause, null, null);
+        Cursor cursor = cr.query(
+                MediaStore.Audio.Albums.EXTERNAL_CONTENT_URI,
+                colsToSelect,
+                whereClause,
+                null,
+                null
+        );
 
         String albumArtwork = "";
-        if (cursor.moveToFirst()) {
-            do {
-                albumArtwork = cursor.getString(cursor.getColumnIndex(ARTWORK));
-            } while (cursor.moveToNext());
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    albumArtwork = cursor.getString(cursor.getColumnIndex(ARTWORK));
+                } while (cursor.moveToNext());
+            }
+        } catch (NullPointerException e) {
+            e.printStackTrace();
         }
+
         cursor.close();
-
-
-        Log.d("cxk-db", "Album artwork - " + albumArtwork);
 
         return albumArtwork;
     }
 
     /**
-     * TODO
-     * @return
+     * Gets the rating of a particular song
+     *
+     * @return The rating of the given song
      */
     private String getSongRating(Song s) {
         DBHelper dbHelper = new DBHelper(this);
-        //SQLiteDatabase database = dbHelper.getWritableDatabase();
         return dbHelper.getSongRating(s.getFilepath());
     }
 
@@ -382,26 +393,31 @@ public class MediaContentProvider extends ListActivity {
         int index = 0;
         String albumId = "";
 
-        if (cursor.moveToFirst()) {
-            do {
-                songs.add(new Song(
-                        cursor.getString(cursor.getColumnIndex(ARTIST)),
-                        cursor.getString(cursor.getColumnIndex(ALBUM)),
-                        cursor.getString(cursor.getColumnIndex(TITLE)),
-                        cursor.getString(cursor.getColumnIndex(DURATION)),
-                        cursor.getString(cursor.getColumnIndex(TRACK)),
-                        cursor.getString(cursor.getColumnIndex(FILEPATH))
-                ));
+        try {
+            if (cursor.moveToFirst()) {
+                do {
+                    songs.add(new Song(
+                            cursor.getString(cursor.getColumnIndex(ARTIST)),
+                            cursor.getString(cursor.getColumnIndex(ALBUM)),
+                            cursor.getString(cursor.getColumnIndex(TITLE)),
+                            cursor.getString(cursor.getColumnIndex(DURATION)),
+                            cursor.getString(cursor.getColumnIndex(TRACK)),
+                            cursor.getString(cursor.getColumnIndex(FILEPATH))
+                    ));
 
-                albumId = cursor.getString(cursor.getColumnIndex(ALBUM_ID));
+                    albumId = cursor.getString(cursor.getColumnIndex(ALBUM_ID));
 
-                if (cursor.getString(cursor.getColumnIndex(TITLE)).equals(songName)) {
-                    start_from = index;
-                }
+                    if (cursor.getString(cursor.getColumnIndex(TITLE)).equals(songName)) {
+                        start_from = index;
+                    }
 
-                index++;
-            } while (cursor.moveToNext());
+                    index++;
+                } while (cursor.moveToNext());
+            }
+        } catch (NullPointerException e) {
+            e.printStackTrace();
         }
+
         cursor.close();
 
         String path = getAlbumArtwork(albumId);

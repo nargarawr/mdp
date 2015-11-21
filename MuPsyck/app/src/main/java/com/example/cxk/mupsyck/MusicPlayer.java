@@ -1,25 +1,12 @@
 package com.example.cxk.mupsyck;
 
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
-import android.content.res.Resources;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
-import android.os.Build;
-import android.os.Bundle;
-import android.support.v4.app.NotificationCompat;
 import android.support.v4.content.LocalBroadcastManager;
-import android.util.Log;
-
-import java.io.IOException;
 import java.util.ArrayList;
-
 
 /**
  * Class MusicPlayer
@@ -29,15 +16,16 @@ import java.util.ArrayList;
  */
 public class MusicPlayer extends Thread {
 
+    // ID for broadcasts from this class
     static final String MUSIC_PLAYER_BROADCAST = "MUSIC_PLAYER_BROADCAST";
 
+    // Private variables required
     private PlaybackQueue playbackQueue;
-    private boolean hasDataSource = false;
     private MediaPlayer mediaPlayer;
     private Context context;
     private LocalBroadcastManager broadcaster;
     private MusicPlayerService musicPlayerService;
-
+    private boolean hasDataSource = false;
 
     // Playback options
     private boolean loopingOne = false;

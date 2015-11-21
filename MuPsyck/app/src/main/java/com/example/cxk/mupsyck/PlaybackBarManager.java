@@ -1,12 +1,10 @@
 package com.example.cxk.mupsyck;
 
-
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.content.LocalBroadcastManager;
 import android.widget.TextView;
-
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -16,17 +14,19 @@ import java.util.concurrent.TimeUnit;
  */
 public class PlaybackBarManager extends Thread implements Runnable {
 
+    // IDs for broadcasts
     static final String MUSIC_PROGRESS_BROADCAST = "MUSIC_PROGRESS_BROADCAST";
     static final String CURRENT_TIME = "CURRENT_TIME";
     static final String PERCENT_COMPLETE = "PERCENT_COMPLETE";
+    private LocalBroadcastManager broadcaster;
 
+    // Used to determine the state of playback
     private boolean musicPlaying = false;
     private boolean running = true;
 
+    // Used to get information from the UI
     private TextView currentSongPositionDisplay;
     private TextView songDurationDisplay;
-
-    private LocalBroadcastManager broadcaster;
 
     /**
      * Default constructor, sets up member variables

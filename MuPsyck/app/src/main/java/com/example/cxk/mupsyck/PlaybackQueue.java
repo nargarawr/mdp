@@ -1,7 +1,5 @@
 package com.example.cxk.mupsyck;
 
-import android.util.Log;
-
 import java.util.ArrayList;
 
 /**
@@ -68,7 +66,6 @@ public class PlaybackQueue {
 
         if (shuffle) {
             this.index = (int) (Math.random() * (songs.size()));
-            Log.d("myapp", "random song picked - " + this.index);
         } else {
             // Increase the index of which song is playing in the queue
             this.index++;
@@ -98,7 +95,6 @@ public class PlaybackQueue {
 
         if (shuffle) {
             this.index = (int) (Math.random() * (songs.size() - 1));
-            Log.d("myapp", "random song picked - " + this.index);
         } else {
             // Decrease the index of which song is playing in the queue
             this.index--;

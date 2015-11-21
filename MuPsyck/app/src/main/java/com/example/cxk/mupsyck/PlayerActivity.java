@@ -8,7 +8,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.content.res.Resources;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Point;
@@ -18,7 +17,6 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.os.Bundle;
 import android.telephony.PhoneStateListener;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 import android.view.Display;
 import android.view.MotionEvent;
 import android.view.View;
@@ -40,11 +38,13 @@ import java.util.ArrayList;
  */
 public class PlayerActivity extends Activity {
 
+    // Request codes for launching other activities
     static final int MEDIA_CONTENT_REQUEST_CODE = 1;
-    static final int MEDIA_SHOWLIST_REQUEST_CODE = 2;
+    static final int MEDIA_SHOW_LIST_REQUEST_CODE = 2;
 
     static final String KEEP_PLAYBACK_POSITION = "KEEP_PLAYBACK_POSITION";
 
+    // Class private variables
     private MusicPlayerBinder musicPlayerBinder = null;
     private BroadcastReceiver receiver;
     private ServiceConnection serviceConnection;
@@ -52,10 +52,9 @@ public class PlayerActivity extends Activity {
     private TelephonyStateListener telephonyStateListener;
     private PlaybackBarManager playbackBar;
     private SharedPreferences sharedPref;
-
+    private String albumArtworkPath = "";
     private int shuffleState;
     private int repeatState;
-    private String albumArtworkPath = "";
     private int phoneWidth;
 
     /**
@@ -67,7 +66,6 @@ public class PlayerActivity extends Activity {
      */
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        Log.d("cxk-db", "PlayerActivity::onCreate()");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_player);
 
@@ -87,7 +85,6 @@ public class PlayerActivity extends Activity {
              */
             @Override
             public void onServiceConnected(ComponentName name, IBinder service) {
-                Log.d("cxk-db", "serviceConnection::onServiceConnected()");
                 if (musicPlayerBinder == null) {
                     musicPlayerBinder = (MusicPlayerBinder) service;
 
@@ -170,10 +167,6 @@ public class PlayerActivity extends Activity {
         // Set initial values of shuffle and repeat states
         shuffleState = 0;
         repeatState = 0;
-
-        if (musicPlayerBinder != null && musicPlayerBinder.hasQueue()) {
-            Log.d("cxk-db", "playing .. " + musicPlayerBinder.getPlayingSong().getName());
-        }
     }
 
     /**
@@ -183,11 +176,10 @@ public class PlayerActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        Log.d("cxk-db", "on resumed");
+
         // If this isn't the first launch, update the UI to reflect any changes that may have happened
         // whilst the activity was not on the top of the stack
         if (musicPlayerBinder != null && musicPlayerBinder.hasQueue()) {
-            Log.d("cxk-db", "on resumed 2");
             updatePlayingUI(true);
             showAlbumArtwork(albumArtworkPath);
             playbackBar.seekToPosition(musicPlayerBinder.getPercentComplete());
@@ -323,7 +315,7 @@ public class PlayerActivity extends Activity {
         Intent intent = new Intent(PlayerActivity.this, MediaContentProvider.class);
         intent.putExtras(bundle);
 
-        startActivityForResult(intent, MEDIA_SHOWLIST_REQUEST_CODE);
+        startActivityForResult(intent, MEDIA_SHOW_LIST_REQUEST_CODE);
     }
 
     /**
@@ -419,12 +411,16 @@ public class PlayerActivity extends Activity {
         setStarsOn(clickedStar);
 
         // Finally, we send the updated rating to the database for storage
-        // TODO
+        DBHelper db = new DBHelper(this);
+        Song s = musicPlayerBinder.getPlayingSong();
+        db.updateSongRating(s.getFilepath(), clickedStar);
+        s.setRating(clickedStar + "");
     }
 
     /**
-     * TODO
-     * @param clickedStar
+     * Given a number, will set that many stars on the UI to be selected, to reflect the user rating
+     *
+     * @param clickedStar The number of stars to be selected
      */
     public void setStarsOn(int clickedStar) {
         for (int i = 1; i <= 5; i++) {
@@ -474,7 +470,7 @@ public class PlayerActivity extends Activity {
      */
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if ((requestCode == MEDIA_CONTENT_REQUEST_CODE || requestCode == MEDIA_SHOWLIST_REQUEST_CODE) && resultCode == RESULT_OK) {
+        if ((requestCode == MEDIA_CONTENT_REQUEST_CODE || requestCode == MEDIA_SHOW_LIST_REQUEST_CODE) && resultCode == RESULT_OK) {
             // Get songs from the bundle
             Bundle bundle = data.getExtras();
             ArrayList<Song> songs = bundle.getParcelableArrayList(MediaContentProvider.SONG_ARRAY);
@@ -550,11 +546,13 @@ public class PlayerActivity extends Activity {
      *
      * @param path The path of the artwork
      */
+    @SuppressWarnings("deprecation")
     public void showAlbumArtwork(String path) {
         albumArtworkPath = path;
         Bitmap bmImg = BitmapFactory.decodeFile(albumArtworkPath);
         if (bmImg == null) {
             findViewById(R.id.noAlbumArtFound).setVisibility(View.VISIBLE);
+            findViewById(R.id.backgroundImg).setBackgroundResource(0);
         } else {
             BitmapDrawable background = new BitmapDrawable(bmImg);
             findViewById(R.id.backgroundImg).setBackgroundDrawable(background);
@@ -564,7 +562,12 @@ public class PlayerActivity extends Activity {
     }
 
     /**
+     * Managed broadcasts received. Including those from the music player, when playback has
+     * changed, from the playback bar, when the progress of the song changes, and the service
+     * when it is bound and rebound
      *
+     * @param context Application context
+     * @param intent  Intent sent to this broadcast
      */
     public void onBroadcastReceived(Context context, Intent intent) {
         if (intent.getAction().equals(MusicPlayer.MUSIC_PLAYER_BROADCAST)) {
@@ -603,10 +606,6 @@ public class PlayerActivity extends Activity {
             findViewById(R.id.browseButton).setVisibility(View.GONE);
             findViewById(R.id.browseButtonIcon).setVisibility(View.VISIBLE);
             findViewById(R.id.browsePlaylistIcon).setVisibility(View.VISIBLE);
-        }
-
-        if (intent.getAction().equals(Intent.ACTION_HEADSET_PLUG)) {
-            Log.d("cxk-db", "----------------HEADPHONES?!?!?!");
         }
     }
 }

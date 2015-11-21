@@ -1,8 +1,6 @@
 package com.example.cxk.mupsyck;
 
-
 import android.os.Binder;
-
 import java.util.ArrayList;
 
 /**
@@ -48,7 +46,7 @@ public class MusicPlayerBinder extends Binder {
     }
 
     /**
-     * Stops playback of the current song, resets the music player and resets the datasource
+     * Stops playback of the current song, resets the music player and resets the data source
      */
     public void stopPlayback() {
         musicPlayerService.stopPlayback();
